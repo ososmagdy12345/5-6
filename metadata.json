@@ -1,0 +1,6 @@
+{
+  "name": "خدمة خامسة وسادسة - مدارس الأحد",
+  "description": "نظام متكامل لمتابعة حضور المخدومين والخدام، التقارير، الكوبونات، وإشعارات وتجميع أعياد الميلاد الشهرية.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

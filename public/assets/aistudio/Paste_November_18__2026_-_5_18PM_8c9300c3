@@ -1,0 +1,1512 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+<title>خدمة خامسة وسادسة - مدارس الأحد</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif}
+body{background:#f0f2f5;padding:10px;min-height:100vh;position:relative;background-image:url('https://i.ibb.co/4gP3wDDV/image.png');background-repeat:repeat;background-size:200px 200px;background-position:center;background-attachment:fixed;opacity:.98}
+body::before{content:'';position:fixed;top:0;left:0;width:100%;height:100%;background-color:rgba(255,255,255,.85);pointer-events:none;z-index:0}
+.container{max-width:1200px;margin:0 auto;background:rgba(255,255,255,.95);backdrop-filter:blur(2px);border-radius:20px;box-shadow:0 8px 16px rgba(0,0,0,.1);padding:20px;position:relative;z-index:1}
+.header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;margin-bottom:20px;border-bottom:2px solid #e5e7eb;padding-bottom:15px}
+.logo-container{display:flex;align-items:center;gap:15px;flex-wrap:wrap}
+.logo-img{height:70px;width:auto;border-radius:10px;box-shadow:0 2px 4px rgba(0,0,0,.1)}
+.logo-text{font-size:24px;font-weight:bold;background:linear-gradient(135deg,#1e3a8a,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.btn{background:#1e3a8a;color:white;border:none;padding:12px 20px;border-radius:30px;cursor:pointer;font-size:16px;font-weight:500;box-shadow:0 4px 6px rgba(0,0,0,.1);transition:.2s;margin:5px;min-width:120px;position:relative;z-index:10}
+.btn:hover{background:#2563eb}
+.btn:disabled{opacity:.6;cursor:not-allowed}
+.btn-success{background:#10b981}
+.btn-success:hover:not(:disabled){background:#059669}
+.btn-warning{background:#f59e0b}
+.btn-warning:hover:not(:disabled){background:#d97706}
+.btn-info{background:#3b82f6}
+.btn-info:hover:not(:disabled){background:#1e3a8a}
+.btn-coupon{background:#8b5cf6}
+.btn-coupon:hover:not(:disabled){background:#7c3aed}
+.btn-add{background:#10b981}
+.btn-servant{background:#0ea5e9}
+.btn-servant:hover:not(:disabled){background:#0284c7}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-radius:50%;border-top-color:white;animation:spin 1s ease-in-out infinite;margin-left:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.login-form{max-width:400px;margin:20px auto;padding:30px;background:rgba(255,255,255,.95);border-radius:24px;box-shadow:0 10px 25px rgba(0,0,0,.05);text-align:center;backdrop-filter:blur(2px)}
+.login-form h2{margin-bottom:20px;color:#1e3a8a;font-size:28px}
+.login-form input{width:100%;padding:16px;margin:8px 0 20px;border:1px solid #d1d5db;border-radius:16px;font-size:18px}
+.date-bar,.date-range{display:flex;flex-wrap:wrap;gap:15px;align-items:center;margin-bottom:25px;background:rgba(249,250,251,.9);padding:20px;border-radius:20px;backdrop-filter:blur(2px)}
+.date-bar label,.date-range label{font-weight:600;color:#374151;font-size:16px}
+.date-bar input[type="date"],.date-range input[type="date"]{padding:12px;border:1px solid #d1d5db;border-radius:12px;font-size:16px;background:white;flex:1;min-width:200px}
+.dashboard-summary{display:flex;gap:15px;flex-wrap:wrap;margin-bottom:25px;background:rgba(249,250,251,.9);padding:20px;border-radius:20px;backdrop-filter:blur(2px)}
+.stat-card{background:white;border-radius:16px;padding:16px;flex:1 1 160px;box-shadow:0 2px 8px rgba(0,0,0,.05);text-align:center}
+.stat-card h4{color:#6b7280;font-size:14px;margin-bottom:8px}
+.stat-card .value{font-size:28px;font-weight:700;color:#1e3a8a}
+.table-wrapper{overflow-x:auto;margin-bottom:20px;border-radius:16px;border:1px solid #e5e7eb;background:white}
+.attendance-table{width:100%;border-collapse:collapse;table-layout:fixed;min-width:700px}
+.attendance-table th,.attendance-table td{border:1px solid #e5e7eb;padding:12px;text-align:center;vertical-align:middle}
+.attendance-table th{background:#1e3a8a;color:white;font-weight:600;font-size:15px}
+.attendance-table input,.attendance-table select{width:100%;padding:8px;text-align:center;border:1px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box}
+.attendance-table td:first-child{text-align:right;padding-right:10px}
+.servant-check{width:28px;height:28px;cursor:pointer;accent-color:#10b981}
+.name-cell{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.absent-warning{background-color:#fee2e2;color:#b91c1c;font-weight:600;border-radius:20px;padding:4px 8px;font-size:13px;display:inline-block;white-space:nowrap}
+.repeated-absence{background-color:#fef3c7;color:#92400e;font-weight:600;border-radius:20px;padding:4px 8px;font-size:13px;display:inline-block;white-space:nowrap}
+.long-absence{background-color:#4b5563;color:#fff;font-weight:600;border-radius:20px;padding:4px 8px;font-size:13px;display:inline-block;white-space:nowrap}
+.save-btn{background:#10b981;color:white;border:none;padding:18px 28px;border-radius:40px;font-size:20px;font-weight:600;width:100%;cursor:pointer;box-shadow:0 6px 12px rgba(16,185,129,.3);transition:.2s;margin-top:10px;position:relative}
+.save-btn:disabled{opacity:.6;cursor:not-allowed}
+.save-btn:hover:not(:disabled){background:#059669}
+.message{padding:16px;border-radius:16px;margin:20px 0;text-align:center;font-weight:500;font-size:16px}
+.success{background:#d1fae5;color:#065f46}
+.error{background:#fee2e2;color:#991b1b}
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:1000;justify-content:center;align-items:center}
+.modal-content{background:white;padding:30px;border-radius:24px;max-width:500px;width:90%;direction:rtl}
+.modal-content h3{margin-bottom:20px;color:#1e3a8a}
+.modal-content input,.modal-content select{width:100%;padding:12px;margin:10px 0;border:1px solid #d1d5db;border-radius:12px;font-size:16px}
+.coupon-modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:1000;justify-content:center;align-items:center}
+.coupon-content{background:white;padding:30px;border-radius:24px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto;position:relative;direction:rtl}
+.coupon-close{position:absolute;top:15px;left:15px;font-size:24px;cursor:pointer;color:#6b7280}
+.print-btn{background:#1e3a8a;color:white;border:none;padding:12px 24px;border-radius:30px;cursor:pointer;font-size:16px;margin-top:15px;width:100%}
+.filter-input,.filter-number{background:white !important;border:1px solid #d1d5db !important;padding:10px !important;border-radius:8px !important;font-size:16px !important}
+@media (max-width:768px){
+.btn{width:100%;margin:5px 0}
+.header{flex-direction:column;align-items:flex-start}
+.logo-container{margin-bottom:10px}
+.date-bar,.date-range{flex-direction:column;align-items:stretch}
+.attendance-table th,.attendance-table td{padding:8px 4px}
+.attendance-table input,.attendance-table select{padding:6px;font-size:12px}
+.servant-check{width:32px;height:32px}
+}
+@media (max-width:400px){
+.attendance-table th,.attendance-table td{padding:6px 2px}
+.attendance-table input,.attendance-table select{padding:4px;font-size:11px}
+.servant-check{width:36px;height:36px}
+}
+</style>
+</head>
+<body>
+<div class="container" id="app"></div>
+<div id="addStudentModal" class="modal">
+<div class="modal-content">
+<h3>➕ إضافة طالب جديد</h3>
+<label for="newStudentName">اسم الطالب:</label>
+<input type="text" id="newStudentName" placeholder="أدخل الاسم كاملاً">
+<div id="adminClassSelectDiv" style="display:none;">
+<label for="newStudentClass">الفصل:</label>
+<select id="newStudentClass"></select>
+</div>
+<div style="display:flex;gap:10px;justify-content:space-between;">
+<button class="btn" id="confirmAddStudent">حفظ</button>
+<button class="btn btn-warning" id="cancelAddStudent">إلغاء</button>
+</div>
+<div id="addStudentMessage" style="margin-top:10px;color:red;"></div>
+</div>
+</div>
+<div id="couponModal" class="coupon-modal">
+<div class="coupon-content" id="couponContent">
+<span class="coupon-close" onclick="closeCouponModal()">&times;</span>
+<div id="couponInner"></div>
+</div>
+</div> <script>
+// ================== إعدادات Supabase ==================
+const SUPABASE_URL = 'https://segqpdkygxdzzpkkgiem.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNlZ3FwZGt5Z3hkenpwa2tnaWVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5NDQzOTMsImV4cCI6MjA4NzUyMDM5M30.wPx74fmu93ii-tm6iIeyPucRsNnSA8SFUsHhJitp1bs';
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let currentUser = null;
+let currentClassId = null;
+let students = [];
+let attendanceRecords = [];
+let allClasses = [];
+let isLoading = false;
+let viewMode = 'daily';
+let currentAdminClassId = null;
+let currentServants = [];
+let servantAttendanceRecords = [];
+
+const LOGO_URL = 'https://i.ibb.co/4gP3wDDV/image.png';
+
+// ================== دوال مساعدة ==================
+function deduplicateStudents(list) {
+    const m = new Map();
+    for (const s of list) {
+        const k = `${s.name}_${s.class_id}`;
+        if (!m.has(k)) m.set(k, s);
+    }
+    return Array.from(m.values());
+}
+
+function normalizeText(text) {
+    if (!text) return '';
+    return text.toLowerCase().replace(/[أإآ]/g, 'ا').replace(/[ى]/g, 'ي').replace(/[ؤ]/g, 'و').replace(/[ئ]/g, 'ي').replace(/[ة]/g, 'ه');
+}
+
+function getTodayDate() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function getThreeWeeksAgo() {
+    const d = new Date();
+    d.setDate(d.getDate() - 21);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// ================== دوال جلب البيانات ==================
+async function fetchAllClasses() {
+    const { data, error } = await supabaseClient.from('classes').select('*');
+    if (error) { console.error(error); return []; }
+    return data || [];
+}
+
+async function fetchAllStudents() {
+    const { data, error } = await supabaseClient.from('students').select('*').eq('active', true);
+    if (error) { console.error(error); return []; }
+    return deduplicateStudents(data || []);
+}
+
+async function fetchAttendanceForAllClasses(s, e) {
+    const { data, error } = await supabaseClient.from('attendance').select('*').gte('date', s).lte('date', e).order('date', { ascending: true });
+    if (error) { console.error(error); return []; }
+    return data || [];
+}
+
+async function fetchAttendanceForDateRange(cid, s, e) {
+    if (!cid) return [];
+    const ids = students.map(x => x.id);
+    const { data, error } = await supabaseClient.from('attendance').select('*').in('student_id', ids).gte('date', s).lte('date', e).order('date', { ascending: true });
+    if (error) { console.error(error); return []; }
+    return data || [];
+}
+
+async function fetchAttendanceForDate(cid, date) {
+    if (!cid || !students.length) return [];
+    const ids = students.map(x => x.id);
+    const { data, error } = await supabaseClient.from('attendance').select('*').in('student_id', ids).eq('date', date);
+    if (error) { console.error(error); return []; }
+    return data || [];
+}
+
+// ================== تحليل مستوى الغياب (للطلاب) ==================
+// Returns: 0=present (this row has grades), 1=absent once, 2=absent twice consecutive, 4=absent 4+ consecutive
+async function getStudentAbsenceLevel(studentId, currentDate, currentTotal) {
+    if (currentTotal > 0) return 0; // حاضر
+    try {
+        const { data, error } = await supabaseClient
+            .from('attendance')
+            .select('mass_grade, communion_grade, class_grade, behavior_grade')
+            .eq('student_id', studentId).lt('date', currentDate)
+            .order('date', { ascending: false }).limit(3);
+        if (error || !data || data.length === 0) return 1;
+        const isAbsent = r => ((r.mass_grade || 0) + (r.communion_grade || 0) + (r.class_grade || 0) + (r.behavior_grade || 0)) === 0;
+        if (data.length >= 3 && isAbsent(data[0]) && isAbsent(data[1]) && isAbsent(data[2])) return 4;
+        if (isAbsent(data[0])) return 2;
+        return 1;
+    } catch { return 1; }
+}
+
+// ================== تحليل مستوى الغياب (للخدام) ==================
+async function getServantAbsenceLevel(servantId, currentDate, currentIsAbsent) {
+    if (!currentIsAbsent) return 0;
+    try {
+        const { data, error } = await supabaseClient
+            .from('servant_attendance')
+            .select('attended_mass, attended_opening, attended_fasl, attended_preparation')
+            .eq('servant_id', servantId).lt('date', currentDate)
+            .order('date', { ascending: false }).limit(3);
+        if (error || !data || data.length === 0) return 1;
+        const isAbsent = r => !r.attended_mass && !r.attended_opening && !r.attended_fasl && !r.attended_preparation;
+        if (data.length >= 3 && isAbsent(data[0]) && isAbsent(data[1]) && isAbsent(data[2])) return 4;
+        if (isAbsent(data[0])) return 2;
+        return 1;
+    } catch { return 1; }
+}
+
+function getAbsenceStyle(level) {
+    switch (level) {
+        case 4: return 'background:#4b5563;color:#fff;';
+        case 2: return 'background:#fff1f0;';
+        case 1: return 'background:#fffbeb;';
+        default: return 'background:#f0fdf4;';
+    }
+}
+
+function getAbsenceBadge(level) {
+    switch (level) {
+        case 4: return '<span class="long-absence">🚫 غائب 4+ جمعات</span>';
+        case 2: return '<span class="repeated-absence">⚠️ غائب مرتين</span>';
+        case 1: return '<span class="absent-warning">⚠️ غائب</span>';
+        default: return '';
+    }
+}
+
+// ================== دوال التحديث ==================
+function calculateTotalFromRow(row) {
+    const m = parseInt(row.querySelector('[data-field="mass"]')?.value) || 0;
+    const c = parseInt(row.querySelector('[data-field="communion"]')?.value) || 0;
+    const cl = parseInt(row.querySelector('[data-field="class"]')?.value) || 0;
+    const b = parseInt(row.querySelector('[data-field="behavior"]')?.value) || 0;
+    return m + c + cl + b;
+}
+
+function updateRowTotal(row) {
+    const tc = row.querySelector('.total-grade');
+    if (tc) tc.textContent = calculateTotalFromRow(row);
+}
+
+function updateDashboard(records, studentsList = students) {
+    const totalStudents = studentsList.length;
+    let presentCount = 0, massCount = 0, communionCount = 0, classCount = 0;
+    if (records.length > 0) {
+        const dates = [...new Set(records.map(r => r.date))].sort();
+        const lastDate = dates[dates.length - 1];
+        const lastDayRecords = records.filter(r => r.date === lastDate);
+        lastDayRecords.forEach(rec => {
+            if (rec.mass_grade === 10) massCount++;
+            if (rec.communion_grade === 10) communionCount++;
+            if (rec.class_grade === 10) classCount++;
+            if (rec.mass_grade === 10 && rec.communion_grade === 10 && rec.class_grade === 10) presentCount++;
+        });
+    }
+    const dash = document.querySelector('.dashboard-summary');
+    if (dash) {
+        dash.innerHTML = `<div class="stat-card"><h4>عدد المخدومين</h4><div class="value">${totalStudents}</div></div><div class="stat-card"><h4>الحضور الكامل</h4><div class="value">${presentCount}</div></div><div class="stat-card"><h4>القداس (10)</h4><div class="value">${massCount}</div></div><div class="stat-card"><h4>التناول (10)</h4><div class="value">${communionCount}</div></div><div class="stat-card"><h4>الخدمة (10)</h4><div class="value">${classCount}</div></div>`;
+    }
+}
+
+function attachInputListeners() {
+    document.querySelectorAll('[data-field="mass"], [data-field="communion"], [data-field="class"], [data-field="behavior"]').forEach(input => {
+        input.removeEventListener('input', inputHandler);
+        input.addEventListener('input', inputHandler);
+        input.addEventListener('blur', validateInput);
+    });
+}
+
+function validateInput(e) {
+    const input = e.target;
+    const min = parseInt(input.min) || 0;
+    const max = parseInt(input.max) || 10;
+    let v = parseInt(input.value);
+    if (isNaN(v)) input.value = 0;
+    else if (v < min) input.value = min;
+    else if (v > max) input.value = max;
+}
+
+function inputHandler(e) {
+    validateInput(e);
+    const row = e.target.closest('tr');
+    if (row) {
+        updateRowTotal(row);
+        const total = calculateTotalFromRow(row);
+        if (total > 0) {
+            row.style.background = '#f0fdf4';
+            const span = row.querySelector('.absent-warning, .repeated-absence, .long-absence');
+            if (span) span.remove();
+        } else {
+            row.style.background = '#fffbeb';
+        }
+    }
+}
+
+// ================== الكوبونات ==================
+function openCouponModal() { document.getElementById('couponModal').style.display = 'flex'; }
+function closeCouponModal() { document.getElementById('couponModal').style.display = 'none'; }
+function printCoupon(html) { const w = window.open('', '_blank'); w.document.write(html); w.document.close(); w.focus(); w.print(); }
+
+function generateCouponHTML(name, cls, s, e, data) {
+    let tM = 0, tC = 0, tCl = 0, tB = 0;
+    data.forEach(r => { tM += r.mass_grade || 0; tC += r.communion_grade || 0; tCl += r.class_grade || 0; tB += r.behavior_grade || 0; });
+    const grand = tM + tC + tCl + tB, days = data.length;
+    return `<div style="font-family:'Segoe UI',sans-serif;direction:rtl;padding:20px;"><div style="text-align:center;margin-bottom:20px;"><img src="${LOGO_URL}" style="height:80px;"><h2 style="color:#1e3a8a;margin:10px 0;">خدمة خامسة وسادسة</h2><h3>كوبون تميز</h3></div><div style="border:2px dashed #1e3a8a;padding:20px;border-radius:20px;"><div style="display:flex;justify-content:space-between;margin-bottom:15px;"><span style="font-weight:bold;">اسم المخدوم:</span><span style="color:#1e3a8a;font-weight:bold;">${name}</span></div><div style="display:flex;justify-content:space-between;margin-bottom:15px;"><span style="font-weight:bold;">الفصل:</span><span style="color:#1e3a8a;">${cls}</span></div><div style="display:flex;justify-content:space-between;margin-bottom:15px;"><span style="font-weight:bold;">الفترة:</span><span>${s} إلى ${e}</span></div><div style="display:flex;justify-content:space-between;margin-bottom:15px;"><span style="font-weight:bold;">عدد أيام الحضور:</span><span>${days}</span></div><div style="border-top:1px solid #e5e7eb;margin:15px 0;"></div><div style="display:flex;justify-content:space-between;margin-bottom:10px;"><span>إجمالي درجات القداس:</span><span>${tM}</span></div><div style="display:flex;justify-content:space-between;margin-bottom:10px;"><span>إجمالي درجات التناول:</span><span>${tC}</span></div><div style="display:flex;justify-content:space-between;margin-bottom:10px;"><span>إجمالي درجات الخدمة:</span><span>${tCl}</span></div><div style="display:flex;justify-content:space-between;margin-bottom:10px;"><span>إجمالي درجات السلوك:</span><span>${tB}</span></div><div style="background:#e0f2fe;border-radius:12px;padding:15px;text-align:center;margin-top:15px;"><div style="font-size:14px;color:#1e3a8a;">المجموع الكلي</div><div style="font-size:48px;font-weight:bold;color:#1e3a8a;">${grand}</div></div></div></div>`;
+}
+
+function exportCouponsToExcel(filtered, cls, s, e) {
+    const ex = filtered.map(x => {
+        const r = attendanceRecords.filter(a => a.student_id === x.id);
+        const tM = r.reduce((a, b) => a + (b.mass_grade || 0), 0);
+        const tC = r.reduce((a, b) => a + (b.communion_grade || 0), 0);
+        const tCl = r.reduce((a, b) => a + (b.class_grade || 0), 0);
+        const tB = r.reduce((a, b) => a + (b.behavior_grade || 0), 0);
+        return { 'اسم المخدوم': x.name, 'الفصل': cls, 'الفترة': `${s} إلى ${e}`, 'عدد أيام الحضور': r.length, 'إجمالي القداس': tM, 'إجمالي التناول': tC, 'إجمالي الخدمة': tCl, 'إجمالي السلوك': tB, 'المجموع الكلي': tM + tC + tCl + tB };
+    });
+    const wsData = [['اسم المخدوم', 'الفصل', 'الفترة', 'عدد أيام الحضور', 'إجمالي القداس', 'إجمالي التناول', 'إجمالي الخدمة', 'إجمالي السلوك', 'المجموع الكلي'], ...ex.map(r => Object.values(r))];
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    XLSX.utils.book_append_sheet(wb, ws, 'كوبونات');
+    XLSX.writeFile(wb, `كوبونات_${cls}_${new Date().toLocaleDateString()}.xlsx`);
+}
+
+// ================== إضافة طالب ==================
+async function checkDuplicateStudent(name, cid) {
+    const { data } = await supabaseClient.from('students').select('id').eq('name', name).eq('class_id', cid).maybeSingle();
+    return !!data;
+}
+
+async function addStudent(name, cid) {
+    if (await checkDuplicateStudent(name, cid)) { alert('⚠️ هذا الاسم موجود بالفعل في نفس الفصل.'); return false; }
+    const { error } = await supabaseClient.from('students').insert([{ name, class_id: cid, active: true }]);
+    if (error) { alert('حدث خطأ: ' + error.message); return false; }
+    return true;
+}
+
+function showAddStudentModal(forAdmin = false) {
+    const modal = document.getElementById('addStudentModal');
+    const div = document.getElementById('adminClassSelectDiv');
+    if (forAdmin && allClasses.length) {
+        div.style.display = 'block';
+        const sel = document.getElementById('newStudentClass');
+        sel.innerHTML = '<option value="">اختر الفصل</option>';
+        allClasses.forEach(c => { sel.innerHTML += `<option value="${c.id}">${c.class_name}</option>`; });
+    } else div.style.display = 'none';
+    modal.style.display = 'flex';
+}
+
+function hideAddStudentModal() {
+    document.getElementById('addStudentModal').style.display = 'none';
+    document.getElementById('newStudentName').value = '';
+    document.getElementById('addStudentMessage').innerHTML = '';
+}
+
+async function handleAddStudent() {
+    const name = document.getElementById('newStudentName').value.trim();
+    if (!name) { document.getElementById('addStudentMessage').innerHTML = '⚠️ الرجاء إدخال اسم الطالب'; return; }
+    let cid;
+    if (currentUser.role === 'admin') {
+        cid = document.getElementById('newStudentClass').value;
+        if (!cid) { document.getElementById('addStudentMessage').innerHTML = '⚠️ الرجاء اختيار الفصل'; return; }
+    } else cid = currentClassId;
+    if (await addStudent(name, cid)) {
+        hideAddStudentModal();
+        if (currentUser.role === 'admin' && currentAdminClassId) {
+            const { data: s } = await supabaseClient.from('students').select('*').eq('class_id', currentAdminClassId).eq('active', true);
+            students = deduplicateStudents(s || []);
+            const t = getTodayDate();
+            attendanceRecords = await fetchAttendanceForDate(currentAdminClassId, t);
+            renderDailyTableAdmin(currentAdminClassId, t);
+        } else if (currentUser.role !== 'admin') {
+            const { data: s } = await supabaseClient.from('students').select('*').eq('class_id', currentClassId).eq('active', true);
+            students = deduplicateStudents(s || []);
+            const t = getTodayDate();
+            attendanceRecords = await fetchAttendanceForDate(currentClassId, t);
+            renderDailyTable(t);
+        } else loadAdminView();
+    }
+}
+
+// ================== التسجيل اليومي للأولاد (مع الألوان) ==================
+async function renderDailyView() {
+    const t = getTodayDate();
+    attendanceRecords = await fetchAttendanceForDate(currentClassId, t);
+    renderDailyTable(t);
+}
+
+function filterDailyTable(v) {
+    const fv = normalizeText(v);
+    document.querySelectorAll('#dailyTableBody tr').forEach(row => {
+        const ns = row.cells[0]?.querySelector('.student-name');
+        const name = ns ? normalizeText(ns.textContent) : normalizeText(row.cells[0]?.innerText);
+        row.style.display = name.includes(fv) ? '' : 'none';
+    });
+}
+
+async function renderDailyTable(selectedDate) {
+    let rows = '';
+    const studentsData = [];
+    for (const s of students) {
+        const r = attendanceRecords.find(a => a.student_id === s.id);
+        const mass = r ? r.mass_grade : 0;
+        const comm = r ? r.communion_grade : 0;
+        const cls = r ? r.class_grade : 0;
+        const beh = r ? r.behavior_grade : 0;
+        const notes = r ? r.notes || '' : '';
+        const total = mass + comm + cls + beh;
+        studentsData.push({ id: s.id, name: s.name, total });
+        rows += `<tr data-id="${s.id}">
+            <td><div class="name-cell"><span class="student-name" data-id="${s.id}">${s.name}</span></div></td>
+            <td><input type="number" min="0" max="10" step="10" class="grade-input" data-id="${s.id}" data-field="mass" value="${mass}"></td>
+            <td><input type="number" min="0" max="10" step="10" class="grade-input" data-id="${s.id}" data-field="communion" value="${comm}"></td>
+            <td><input type="number" min="0" max="10" step="10" class="grade-input" data-id="${s.id}" data-field="class" value="${cls}"></td>
+            <td><select class="behavior-select" data-id="${s.id}" data-field="behavior">${[0,1,2,3,4,5].map(v => `<option value="${v}" ${beh === v ? 'selected' : ''}>${v}</option>`).join('')}</select></td>
+            <td><input type="text" class="grade-input" data-id="${s.id}" data-field="notes" placeholder="..." value="${notes}"></td>
+            <td class="total-grade">${total}</td>
+        </tr>`;
+    }
+    document.getElementById('app').innerHTML = `<div>
+        <div class="header">
+            <div class="logo-container"><img src="${LOGO_URL}" class="logo-img"><span class="logo-text">${currentUser?.classes?.class_name || 'الفصل'}</span></div>
+            <div>
+                <button class="btn btn-add" id="addStudentBtn">➕ إضافة طالب</button>
+                <button class="btn btn-warning" id="reportBtn">📊 التقارير</button>
+                <button class="btn" id="logoutBtn">تسجيل خروج</button>
+            </div>
+        </div>
+        <div class="date-bar"><label>📅 التاريخ:</label><input type="date" id="attendanceDate" value="${selectedDate}"></div>
+        <div style="background:#f9fafb;padding:15px;border-radius:12px;margin-bottom:20px;"><label for="dailyNameFilter">🔍 بحث بالاسم:</label><input type="text" id="dailyNameFilter" placeholder="اكتب جزءاً من الاسم" class="filter-input" oninput="filterDailyTable(this.value)"></div>
+        <div class="dashboard-summary"></div>
+        <div class="table-wrapper">
+            <table class="attendance-table">
+                <thead><tr><th>الاسم</th><th>القداس (0/10)</th><th>التناول (0/10)</th><th>حضور الخدمة (0/10)</th><th>السلوك (0-5)</th><th>ملاحظات</th><th>المجموع</th></tr></thead>
+                <tbody id="dailyTableBody">${rows}</tbody>
+            </table>
+        </div>
+        <button class="save-btn" id="saveAttendance">حفظ الحضور</button>
+        <div id="message"></div>
+    </div>`;
+    updateDashboard(attendanceRecords);
+    attachInputListeners();
+    // تطبيق الألوان والتحذيرات
+    for (const stu of studentsData) {
+        const level = await getStudentAbsenceLevel(stu.id, selectedDate, stu.total);
+        const span = document.querySelector(`.student-name[data-id="${stu.id}"]`);
+        if (span) {
+            const pd = span.parentElement;
+            const tr = span.closest('tr');
+            tr.style.cssText = getAbsenceStyle(level);
+            // مسح الـ badge القديم
+            const oldBadge = pd.querySelector('.absent-warning, .repeated-absence, .long-absence');
+            if (oldBadge) oldBadge.remove();
+            if (level > 0) {
+                const w = document.createElement('span');
+                w.innerHTML = getAbsenceBadge(level);
+                pd.appendChild(w.firstChild);
+            }
+        }
+    }
+    document.getElementById('addStudentBtn').addEventListener('click', () => showAddStudentModal(false));
+    document.getElementById('logoutBtn').addEventListener('click', logout);
+    document.getElementById('reportBtn').addEventListener('click', async () => {
+        viewMode = 'report';
+        const e = getTodayDate(), s = getThreeWeeksAgo();
+        attendanceRecords = await fetchAttendanceForDateRange(currentClassId, s, e);
+        renderReportTable(s, e);
+    });
+    document.getElementById('saveAttendance').addEventListener('click', () => saveDailyAttendance(currentClassId, selectedDate));
+    document.getElementById('attendanceDate').addEventListener('change', async ev => {
+        attendanceRecords = await fetchAttendanceForDate(currentClassId, ev.target.value);
+        renderDailyTable(ev.target.value);
+    });
+}
+
+async function renderDailyAdminView(cid) {
+    const t = getTodayDate();
+    attendanceRecords = await fetchAttendanceForDate(cid, t);
+    renderDailyTableAdmin(cid, t);
+}
+
+function filterDailyTableAdmin(v) {
+    const fv = normalizeText(v);
+    document.querySelectorAll('#dailyTableBodyAdmin tr').forEach(row => {
+        const ns = row.cells[0]?.querySelector('.student-name');
+        const name = ns ? normalizeText(ns.textContent) : normalizeText(row.cells[0]?.innerText);
+        row.style.display = name.includes(fv) ? '' : 'none';
+    });
+}
+
+async function renderDailyTableAdmin(cid, selectedDate) {
+    let rows = '';
+    const studentsData = [];
+    for (const s of students) {
+        const r = attendanceRecords.find(a => a.student_id === s.id);
+        const mass = r ? r.mass_grade : 0;
+        const comm = r ? r.communion_grade : 0;
+        const cls = r ? r.class_grade : 0;
+        const beh = r ? r.behavior_grade : 0;
+        const notes = r ? r.notes || '' : '';
+        const total = mass + comm + cls + beh;
+        studentsData.push({ id: s.id, name: s.name, total });
+        rows += `<tr data-id="${s.id}">
+            <td><div class="name-cell"><span class="student-name" data-id="${s.id}">${s.name}</span></div></td>
+            <td><input type="number" min="0" max="10" step="10" class="grade-input" data-id="${s.id}" data-field="mass" value="${mass}"></td>
+            <td><input type="number" min="0" max="10" step="10" class="grade-input" data-id="${s.id}" data-field="communion" value="${comm}"></td>
+            <td><input type="number" min="0" max="10" step="10" class="grade-input" data-id="${s.id}" data-field="class" value="${cls}"></td>
+            <td><select class="behavior-select" data-id="${s.id}" data-field="behavior">${[0,1,2,3,4,5].map(v => `<option value="${v}" ${beh === v ? 'selected' : ''}>${v}</option>`).join('')}</select></td>
+            <td><input type="text" class="grade-input" data-id="${s.id}" data-field="notes" placeholder="..." value="${notes}"></td>
+            <td class="total-grade">${total}</td>
+        </tr>`;
+    }
+    document.getElementById('adminContent').innerHTML = `<div>
+        <div class="header" style="border-bottom:none;">
+            <div class="logo-container"><img src="${LOGO_URL}" class="logo-img"><span class="logo-text">${students.length ? 'تسجيل يومي' : ''}</span></div>
+            <div>
+                <button class="btn btn-add" id="addStudentAdminBtn">➕ إضافة طالب</button>
+                <button class="btn btn-warning" id="reportAdminBtn">📊 التقارير</button>
+            </div>
+        </div>
+        <div class="date-bar"><label>📅 التاريخ:</label><input type="date" id="attendanceDateAdmin" value="${selectedDate}"></div>
+        <div style="background:#f9fafb;padding:15px;border-radius:12px;margin-bottom:20px;"><label for="dailyNameFilterAdmin">🔍 بحث بالاسم:</label><input type="text" id="dailyNameFilterAdmin" placeholder="اكتب جزءاً من الاسم" class="filter-input" oninput="filterDailyTableAdmin(this.value)"></div>
+        <div class="dashboard-summary"></div>
+        <div class="table-wrapper">
+            <table class="attendance-table">
+                <thead><tr><th>الاسم</th><th>القداس (0/10)</th><th>التناول (0/10)</th><th>حضور الخدمة (0/10)</th><th>السلوك (0-5)</th><th>ملاحظات</th><th>المجموع</th></tr></thead>
+                <tbody id="dailyTableBodyAdmin">${rows}</tbody>
+            </table>
+        </div>
+        <button class="save-btn" id="saveAttendanceAdmin">حفظ الحضور</button>
+        <div id="message"></div>
+    </div>`;
+    updateDashboard(attendanceRecords);
+    attachInputListeners();
+    for (const stu of studentsData) {
+        const level = await getStudentAbsenceLevel(stu.id, selectedDate, stu.total);
+        const span = document.querySelector(`.student-name[data-id="${stu.id}"]`);
+        if (span) {
+            const pd = span.parentElement;
+            const tr = span.closest('tr');
+            tr.style.cssText = getAbsenceStyle(level);
+            const oldBadge = pd.querySelector('.absent-warning, .repeated-absence, .long-absence');
+            if (oldBadge) oldBadge.remove();
+            if (level > 0) {
+                const w = document.createElement('span');
+                w.innerHTML = getAbsenceBadge(level);
+                pd.appendChild(w.firstChild);
+            }
+        }
+    }
+    document.getElementById('addStudentAdminBtn').addEventListener('click', () => showAddStudentModal(true));
+    document.getElementById('reportAdminBtn').addEventListener('click', async () => {
+        viewMode = 'report';
+        const e = getTodayDate(), s = getThreeWeeksAgo();
+        attendanceRecords = await fetchAttendanceForDateRange(cid, s, e);
+        renderReportTableAdmin(cid, s, e);
+    });
+    document.getElementById('saveAttendanceAdmin').addEventListener('click', () => saveDailyAttendance(cid, selectedDate));
+    document.getElementById('attendanceDateAdmin').addEventListener('change', async ev => {
+        attendanceRecords = await fetchAttendanceForDate(cid, ev.target.value);
+        renderDailyTableAdmin(cid, ev.target.value);
+    });
+}// ================== تقارير الأولاد ==================
+function renderReportTable(startDate, endDate) {
+    const summaryData = students.map(s => {
+        const recs = attendanceRecords.filter(r => r.student_id === s.id);
+        const valid = recs.filter(r => (r.mass_grade || 0) + (r.communion_grade || 0) + (r.class_grade || 0) > 0);
+        const days = valid.length;
+        const tM = valid.reduce((a, b) => a + (b.mass_grade || 0), 0);
+        const tC = valid.reduce((a, b) => a + (b.communion_grade || 0), 0);
+        const tCl = valid.reduce((a, b) => a + (b.class_grade || 0), 0);
+        const tB = valid.reduce((a, b) => a + (b.behavior_grade || 0), 0);
+        return { id: s.id, name: s.name, totalDays: days, totalMass: tM, totalCommunion: tC, totalClass: tCl, totalBehavior: tB, grandTotal: tM + tC + tCl + tB };
+    });
+    let filteredData = [...summaryData];
+    function applyFilters() {
+        const nf = document.getElementById('reportNameFilter')?.value?.toLowerCase() || '';
+        const mf = parseInt(document.getElementById('reportMassFilter')?.value) || 0;
+        const cf = parseInt(document.getElementById('reportCommunionFilter')?.value) || 0;
+        const clf = parseInt(document.getElementById('reportClassFilter')?.value) || 0;
+        filteredData = summaryData.filter(i => (nf === '' || i.name.toLowerCase().includes(nf)) && i.totalMass >= mf && i.totalCommunion >= cf && i.totalClass >= clf);
+        renderTable();
+    }
+    function renderTable() {
+        let rows = '';
+        filteredData.forEach(s => {
+            rows += `<tr><td>${s.name}</td><td>${s.totalDays}</td><td>${s.totalMass}</td><td>${s.totalCommunion}</td><td>${s.totalClass}</td><td>${s.totalBehavior}</td><td class="total-grade">${s.grandTotal}</td><td><button class="btn btn-coupon" onclick="showCoupon('${s.id}','${startDate}','${endDate}')">🎫 كوبون</button></td></tr>`;
+        });
+        document.getElementById('app').innerHTML = `<div>
+            <div class="header">
+                <div class="logo-container"><img src="${LOGO_URL}" class="logo-img"><span class="logo-text">${currentUser?.classes?.class_name || 'الفصل'} - تقرير موجز</span></div>
+                <div>
+                    <button class="btn" id="backToDailyBtn">🔙 العودة للتسجيل</button>
+                    <button class="btn btn-info" id="toggleReportMode">📊 عرض التفاصيل</button>
+                    <button class="btn btn-success" id="exportSummaryExcel">📥 تصدير Excel</button>
+                    <button class="btn btn-coupon" id="printAllCoupons">🖨️ طباعة كوبونات الفصل</button>
+                    <button class="btn btn-success" id="exportCouponsExcel">📥 تصدير الكوبونات Excel</button>
+                    <button class="btn" id="logoutBtn">تسجيل خروج</button>
+                </div>
+            </div>
+            <div class="date-range"><label>من تاريخ:</label><input type="date" id="startDate" value="${startDate}"><label>إلى تاريخ:</label><input type="date" id="endDate" value="${endDate}"><button class="btn" id="fetchRangeBtn">عرض</button></div>
+            <div style="background:#f9fafb;padding:15px;border-radius:12px;margin-bottom:20px;display:flex;flex-wrap:wrap;gap:15px;">
+                <div><label>🔍 فلتر الاسم:</label><input type="text" id="reportNameFilter" placeholder="اكتب جزءاً من الاسم" class="filter-input" style="width:150px;" oninput="applyFilters()"></div>
+                <div><label>القداس ≥:</label><input type="number" id="reportMassFilter" min="0" max="100" value="0" class="filter-number" oninput="applyFilters()"></div>
+                <div><label>التناول ≥:</label><input type="number" id="reportCommunionFilter" min="0" max="100" value="0" class="filter-number" oninput="applyFilters()"></div>
+                <div><label>الخدمة ≥:</label><input type="number" id="reportClassFilter" min="0" max="100" value="0" class="filter-number" oninput="applyFilters()"></div>
+                <button class="btn" id="clearReportFilters">مسح الفلاتر</button>
+            </div>
+            <div class="dashboard-summary"></div>
+            <div class="table-wrapper">
+                <table class="attendance-table">
+                    <thead><tr><th>الاسم</th><th>عدد أيام الحضور</th><th>إجمالي القداس</th><th>إجمالي التناول</th><th>إجمالي الخدمة</th><th>إجمالي السلوك</th><th>المجموع الكلي</th><th>كوبون</th></tr></thead>
+                    <tbody id="reportTableBody">${rows}</tbody>
+                </table>
+            </div>
+            <div id="message"></div>
+        </div>`;
+        updateDashboard(attendanceRecords);
+        document.getElementById('clearReportFilters').addEventListener('click', () => {
+            document.getElementById('reportNameFilter').value = '';
+            document.getElementById('reportMassFilter').value = '0';
+            document.getElementById('reportCommunionFilter').value = '0';
+            document.getElementById('reportClassFilter').value = '0';
+            applyFilters();
+        });
+        document.getElementById('backToDailyBtn').addEventListener('click', async () => { viewMode = 'daily'; await renderDailyView(); });
+        document.getElementById('logoutBtn').addEventListener('click', logout);
+        document.getElementById('toggleReportMode').addEventListener('click', () => renderDetailedReport(startDate, endDate));
+        document.getElementById('exportSummaryExcel').addEventListener('click', () => {
+            const wsData = [['الاسم', 'عدد أيام الحضور', 'إجمالي القداس', 'إجمالي التناول', 'إجمالي الخدمة', 'إجمالي السلوك', 'المجموع الكلي']];
+            filteredData.forEach(s => wsData.push([s.name, s.totalDays, s.totalMass, s.totalCommunion, s.totalClass, s.totalBehavior, s.grandTotal]));
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            XLSX.utils.book_append_sheet(wb, ws, 'تقرير موجز');
+            XLSX.writeFile(wb, `تقرير_موجز_${currentUser?.classes?.class_name}_${new Date().toLocaleDateString()}.xlsx`);
+        });
+        document.getElementById('printAllCoupons').addEventListener('click', () => {
+            const wg = filteredData.filter(s => s.grandTotal > 0);
+            if (!wg.length) { alert('لا يوجد طلاب بمجموع أكبر من صفر'); return; }
+            let html = '';
+            wg.forEach(s => {
+                const recs = attendanceRecords.filter(r => r.student_id === s.id);
+                html += generateCouponHTML(s.name, currentUser?.classes?.class_name || 'الفصل', startDate, endDate, recs);
+                html += '<div style="page-break-after: always;"></div>';
+            });
+            printCoupon(html);
+        });
+        document.getElementById('exportCouponsExcel').addEventListener('click', () => {
+            const wg = filteredData.filter(s => s.grandTotal > 0);
+            if (!wg.length) { alert('لا يوجد طلاب بمجموع أكبر من صفر'); return; }
+            exportCouponsToExcel(wg, currentUser?.classes?.class_name || 'الفصل', startDate, endDate);
+        });
+        document.getElementById('fetchRangeBtn').addEventListener('click', async () => {
+            const ns = document.getElementById('startDate').value;
+            const ne = document.getElementById('endDate').value;
+            attendanceRecords = await fetchAttendanceForDateRange(currentClassId, ns, ne);
+            renderReportTable(ns, ne);
+        });
+    }
+    renderTable();
+    window.currentClassId = currentClassId;
+    window.currentUser = currentUser;
+    window.attendanceRecords = attendanceRecords;
+    window.students = students;
+    window.startDate = startDate;
+    window.endDate = endDate;
+}
+
+function renderDetailedReport(s, e) {
+    const map = new Map(students.map(x => [x.id, x.name]));
+    const data = attendanceRecords.map(r => ({ ...r, student_name: map.get(r.student_id) || 'غير معروف' })).sort((a, b) => a.student_name.localeCompare(b.student_name) || new Date(a.date) - new Date(b.date));
+    let rows = '';
+    data.forEach(r => {
+        const total = (r.mass_grade || 0) + (r.communion_grade || 0) + (r.class_grade || 0) + (r.behavior_grade || 0);
+        rows += `<tr><td>${r.student_name}</td><td>${r.date}</td><td>${r.mass_grade}</td><td>${r.communion_grade}</td><td>${r.class_grade}</td><td>${r.behavior_grade}</td><td>${r.notes || ''}</td><td class="total-grade">${total}</td></tr>`;
+    });
+    document.getElementById('app').innerHTML = `<div>
+        <div class="header">
+            <div class="logo-container"><img src="${LOGO_URL}" class="logo-img"><span class="logo-text">${currentUser?.classes?.class_name || 'الفصل'} - تقرير مفصل</span></div>
+            <div><button class="btn" id="backToSummaryBtn">🔙 العودة للموجز</button><button class="btn" id="logoutBtn">تسجيل خروج</button></div>
+        </div>
+        <div class="date-range"><label>من تاريخ:</label><input type="date" id="startDate" value="${s}"><label>إلى تاريخ:</label><input type="date" id="endDate" value="${e}"><button class="btn" id="fetchRangeBtn">عرض</button></div>
+        <div class="table-wrapper"><table class="attendance-table"><thead><tr><th>الاسم</th><th>التاريخ</th><th>القداس</th><th>التناول</th><th>الخدمة</th><th>السلوك</th><th>ملاحظات</th><th>المجموع</th></tr></thead><tbody>${rows}</tbody></table></div>
+    </div>`;
+    document.getElementById('backToSummaryBtn').addEventListener('click', () => renderReportTable(s, e));
+    document.getElementById('logoutBtn').addEventListener('click', logout);
+    document.getElementById('fetchRangeBtn').addEventListener('click', async () => {
+        const ns = document.getElementById('startDate').value;
+        const ne = document.getElementById('endDate').value;
+        attendanceRecords = await fetchAttendanceForDateRange(currentClassId, ns, ne);
+        renderDetailedReport(ns, ne);
+    });
+}
+
+async function renderReportTableAdmin(cid, s, e) {
+    const summaryData = students.map(x => {
+        const recs = attendanceRecords.filter(r => r.student_id === x.id);
+        const valid = recs.filter(r => (r.mass_grade || 0) + (r.communion_grade || 0) + (r.class_grade || 0) > 0);
+        const days = valid.length;
+        const tM = valid.reduce((a, b) => a + (b.mass_grade || 0), 0);
+        const tC = valid.reduce((a, b) => a + (b.communion_grade || 0), 0);
+        const tCl = valid.reduce((a, b) => a + (b.class_grade || 0), 0);
+        const tB = valid.reduce((a, b) => a + (b.behavior_grade || 0), 0);
+        return { id: x.id, name: x.name, totalDays: days, totalMass: tM, totalCommunion: tC, totalClass: tCl, totalBehavior: tB, grandTotal: tM + tC + tCl + tB };
+    });
+    let filteredData = [...summaryData];
+    function applyFilters() {
+        const nf = document.getElementById('reportNameFilterAdmin')?.value?.toLowerCase() || '';
+        const mf = parseInt(document.getElementById('reportMassFilterAdmin')?.value) || 0;
+        const cf = parseInt(document.getElementById('reportCommunionFilterAdmin')?.value) || 0;
+        const clf = parseInt(document.getElementById('reportClassFilterAdmin')?.value) || 0;
+        filteredData = summaryData.filter(i => (nf === '' || i.name.toLowerCase().includes(nf)) && i.totalMass >= mf && i.totalCommunion >= cf && i.totalClass >= clf);
+        renderTable();
+    }
+    function renderTable() {
+        let rows = '';
+        filteredData.forEach(x => {
+            rows += `<tr><td>${x.name}</td><td>${x.totalDays}</td><td>${x.totalMass}</td><td>${x.totalCommunion}</td><td>${x.totalClass}</td><td>${x.totalBehavior}</td><td class="total-grade">${x.grandTotal}</td><td><button class="btn btn-coupon" onclick="showCoupon('${x.id}','${s}','${e}')">🎫 كوبون</button></td></tr>`;
+        });
+        document.getElementById('adminContent').innerHTML = `<div>
+            <div class="header" style="border-bottom:none;">
+                <div class="logo-container"><img src="${LOGO_URL}" class="logo-img"><span class="logo-text">تقرير الفصل</span></div>
+                <div>
+                    <button class="btn" id="backToDailyAdminBtn">🔙 العودة للتسجيل</button>
+                    <button class="btn btn-info" id="toggleDetailedAdmin">📊 عرض التفاصيل</button>
+                    <button class="btn btn-coupon" id="printAllCouponsAdmin">🖨️ طباعة كوبونات الفصل</button>
+                    <button class="btn btn-success" id="exportCouponsExcelAdmin">📥 تصدير الكوبونات Excel</button>
+                </div>
+            </div>
+            <div class="date-range"><label>من تاريخ:</label><input type="date" id="startDateAdmin" value="${s}"><label>إلى تاريخ:</label><input type="date" id="endDateAdmin" value="${e}"><button class="btn" id="fetchRangeAdminBtn">عرض</button></div>
+            <div style="background:#f9fafb;padding:15px;border-radius:12px;margin-bottom:20px;display:flex;flex-wrap:wrap;gap:15px;">
+                <div><label>🔍 فلتر الاسم:</label><input type="text" id="reportNameFilterAdmin" placeholder="اكتب جزءاً من الاسم" class="filter-input" style="width:150px;" oninput="applyFilters()"></div>
+                <div><label>القداس ≥:</label><input type="number" id="reportMassFilterAdmin" min="0" max="100" value="0" class="filter-number" oninput="applyFilters()"></div>
+                <div><label>التناول ≥:</label><input type="number" id="reportCommunionFilterAdmin" min="0" max="100" value="0" class="filter-number" oninput="applyFilters()"></div>
+                <div><label>الخدمة ≥:</label><input type="number" id="reportClassFilterAdmin" min="0" max="100" value="0" class="filter-number" oninput="applyFilters()"></div>
+                <button class="btn" id="clearReportFiltersAdmin">مسح الفلاتر</button>
+            </div>
+            <div class="dashboard-summary"></div>
+            <div class="table-wrapper">
+                <table class="attendance-table">
+                    <thead><tr><th>الاسم</th><th>عدد أيام الحضور</th><th>إجمالي القداس</th><th>إجمالي التناول</th><th>إجمالي الخدمة</th><th>إجمالي السلوك</th><th>المجموع الكلي</th><th>كوبون</th></tr></thead>
+                    <tbody id="reportTableBodyAdmin">${rows}</tbody>
+                </table>
+            </div>
+            <div id="message"></div>
+        </div>`;
+        updateDashboard(attendanceRecords);
+        document.getElementById('clearReportFiltersAdmin').addEventListener('click', () => {
+            document.getElementById('reportNameFilterAdmin').value = '';
+            document.getElementById('reportMassFilterAdmin').value = '0';
+            document.getElementById('reportCommunionFilterAdmin').value = '0';
+            document.getElementById('reportClassFilterAdmin').value = '0';
+            applyFilters();
+        });
+        document.getElementById('backToDailyAdminBtn').addEventListener('click', async () => { viewMode = 'daily'; await renderDailyAdminView(cid); });
+        document.getElementById('toggleDetailedAdmin').addEventListener('click', () => renderDetailedReportAdmin(cid, s, e));
+        document.getElementById('printAllCouponsAdmin').addEventListener('click', () => {
+            const wg = filteredData.filter(x => x.grandTotal > 0);
+            if (!wg.length) { alert('لا يوجد طلاب بمجموع أكبر من صفر'); return; }
+            let html = '';
+            wg.forEach(x => {
+                const recs = attendanceRecords.filter(r => r.student_id === x.id);
+                const clsName = allClasses.find(c => c.id === cid)?.class_name || 'الفصل';
+                html += generateCouponHTML(x.name, clsName, s, e, recs);
+                html += '<div style="page-break-after: always;"></div>';
+            });
+            printCoupon(html);
+        });
+        document.getElementById('exportCouponsExcelAdmin').addEventListener('click', () => {
+            const wg = filteredData.filter(x => x.grandTotal > 0);
+            if (!wg.length) { alert('لا يوجد طلاب بمجموع أكبر من صفر'); return; }
+            const clsName = allClasses.find(c => c.id === cid)?.class_name || 'الفصل';
+            exportCouponsToExcel(wg, clsName, s, e);
+        });
+        document.getElementById('fetchRangeAdminBtn').addEventListener('click', async () => {
+            const ns = document.getElementById('startDateAdmin').value;
+            const ne = document.getElementById('endDateAdmin').value;
+            attendanceRecords = await fetchAttendanceForDateRange(cid, ns, ne);
+            renderReportTableAdmin(cid, ns, ne);
+        });
+    }
+    renderTable();
+    window.currentClassId = cid;
+    window.currentUser = currentUser;
+    window.attendanceRecords = attendanceRecords;
+    window.students = students;
+    window.startDate = s;
+    window.endDate = e;
+}
+
+function renderDetailedReportAdmin(cid, s, e) {
+    const map = new Map(students.map(x => [x.id, x.name]));
+    const data = attendanceRecords.map(r => ({ ...r, student_name: map.get(r.student_id) || 'غير معروف' })).sort((a, b) => a.student_name.localeCompare(b.student_name) || new Date(a.date) - new Date(b.date));
+    let rows = '';
+    data.forEach(r => {
+        const total = (r.mass_grade || 0) + (r.communion_grade || 0) + (r.class_grade || 0) + (r.behavior_grade || 0);
+        rows += `<tr><td>${r.student_name}</td><td>${r.date}</td><td>${r.mass_grade}</td><td>${r.communion_grade}</td><td>${r.class_grade}</td><td>${r.behavior_grade}</td><td>${r.notes || ''}</td><td class="total-grade">${total}</td></tr>`;
+    });
+    document.getElementById('adminContent').innerHTML = `<div>
+        <div class="header" style="border-bottom:none;">
+            <div class="logo-container"><img src="${LOGO_URL}" class="logo-img"><span class="logo-text">تقرير مفصل</span></div>
+            <div><button class="btn" id="backToSummaryAdminBtn">🔙 العودة للموجز</button></div>
+        </div>
+        <div class="date-range"><label>من تاريخ:</label><input type="date" id="startDateAdmin" value="${s}"><label>إلى تاريخ:</label><input type="date" id="endDateAdmin" value="${e}"><button class="btn" id="fetchRangeAdminBtn">عرض</button></div>
+        <div class="table-wrapper"><table class="attendance-table"><thead><tr><th>الاسم</th><th>التاريخ</th><th>القداس</th><th>التناول</th><th>الخدمة</th><th>السلوك</th><th>ملاحظات</th><th>المجموع</th></tr></thead><tbody>${rows}</tbody></table></div>
+    </div>`;
+    document.getElementById('backToSummaryAdminBtn').addEventListener('click', () => renderReportTableAdmin(cid, s, e));
+    document.getElementById('fetchRangeAdminBtn').addEventListener('click', async () => {
+        const ns = document.getElementById('startDateAdmin').value;
+        const ne = document.getElementById('endDateAdmin').value;
+        attendanceRecords = await fetchAttendanceForDateRange(cid, ns, ne);
+        renderDetailedReportAdmin(cid, ns, ne);
+    });
+}
+
+async function renderAllClassesReport(allStudents, attRecords, s, e) {
+    const classesData = {};
+    allClasses.forEach(cls => {
+        const cs = allStudents.filter(x => x.class_id === cls.id);
+        const ca = attRecords.filter(r => cs.some(x => x.id === r.student_id));
+        classesData[cls.id] = { className: cls.class_name, students: cs, attendance: ca };
+    });
+    const statsHTML = allClasses.map(cls => {
+        const d = classesData[cls.id];
+        const pc = d.attendance.filter(r => r.mass_grade === 10 && r.communion_grade === 10 && r.class_grade === 10).length;
+        return `<div class="stat-card" style="min-width:150px;"><h4>${cls.class_name}</h4><div>المخدومين: ${d.students.length}</div><div>الحضور الكامل: ${pc}</div></div>`;
+    }).join('');
+    document.getElementById('adminContent').innerHTML = `<div>
+        <div class="header" style="border-bottom:none;">
+            <div class="logo-container"><img src="${LOGO_URL}" class="logo-img"><span class="logo-text">تقرير شامل لجميع الفصول</span></div>
+            <div><button class="btn" id="backToAdminMain">🔙 العودة</button></div>
+        </div>
+        <div class="date-range"><label>من تاريخ:</label><input type="date" id="startDateAll" value="${s}"><label>إلى تاريخ:</label><input type="date" id="endDateAll" value="${e}"><button class="btn" id="fetchAllRangeBtn">عرض</button><button class="btn btn-success" id="exportAllExcelBtn">📥 تصدير Excel شامل</button></div>
+        <div class="dashboard-summary" style="flex-wrap:wrap;">${statsHTML}</div>
+        ${allClasses.map(cls => {
+            const d = classesData[cls.id];
+            if (d.attendance.length === 0) return '';
+            const summ = d.students.map(x => {
+                const recs = d.attendance.filter(r => r.student_id === x.id);
+                const tM = recs.reduce((a, b) => a + (b.mass_grade || 0), 0);
+                const tC = recs.reduce((a, b) => a + (b.communion_grade || 0), 0);
+                const tCl = recs.reduce((a, b) => a + (b.class_grade || 0), 0);
+                const tB = recs.reduce((a, b) => a + (b.behavior_grade || 0), 0);
+                return { name: x.name, days: recs.length, tM, tC, tCl, tB, total: tM + tC + tCl + tB };
+            }).filter(x => x.days > 0);
+            return `<h3 style="margin:20px 0 10px;color:#1e3a8a;">${cls.class_name}</h3><div class="table-wrapper"><table class="attendance-table"><thead><tr><th>الاسم</th><th>عدد أيام الحضور</th><th>إجمالي القداس</th><th>إجمالي التناول</th><th>إجمالي الخدمة</th><th>إجمالي السلوك</th><th>المجموع الكلي</th></tr></thead><tbody>${summ.map(x => `<tr><td>${x.name}</td><td>${x.days}</td><td>${x.tM}</td><td>${x.tC}</td><td>${x.tCl}</td><td>${x.tB}</td><td class="total-grade">${x.total}</td></tr>`).join('')}</tbody></table></div>`;
+        }).join('')}
+        <div id="message"></div>
+    </div>`;
+    document.getElementById('backToAdminMain').addEventListener('click', () => loadAdminView());
+    document.getElementById('fetchAllRangeBtn').addEventListener('click', async () => {
+        const ns = document.getElementById('startDateAll').value;
+        const ne = document.getElementById('endDateAll').value;
+        const na = await fetchAttendanceForAllClasses(ns, ne);
+        const ast = await fetchAllStudents();
+        renderAllClassesReport(ast, na, ns, ne);
+    });
+    document.getElementById('exportAllExcelBtn').addEventListener('click', () => {
+        const ex = [];
+        allClasses.forEach(cls => {
+            const d = classesData[cls.id];
+            if (d.attendance.length === 0) return;
+            d.students.forEach(x => {
+                const recs = d.attendance.filter(r => r.student_id === x.id);
+                const tM = recs.reduce((a, b) => a + (b.mass_grade || 0), 0);
+                const tC = recs.reduce((a, b) => a + (b.communion_grade || 0), 0);
+                const tCl = recs.reduce((a, b) => a + (b.class_grade || 0), 0);
+                const tB = recs.reduce((a, b) => a + (b.behavior_grade || 0), 0);
+                ex.push({ 'الفصل': cls.class_name, 'الاسم': x.name, 'عدد أيام الحضور': recs.length, 'إجمالي القداس': tM, 'إجمالي التناول': tC, 'إجمالي الخدمة': tCl, 'إجمالي السلوك': tB, 'المجموع الكلي': tM + tC + tCl + tB });
+            });
+        });
+        const wsData = [['الفصل', 'الاسم', 'عدد أيام الحضور', 'إجمالي القداس', 'إجمالي التناول', 'إجمالي الخدمة', 'إجمالي السلوك', 'المجموع الكلي']];
+        ex.forEach(r => wsData.push(Object.values(r)));
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        XLSX.utils.book_append_sheet(wb, ws, 'تقرير شامل');
+        XLSX.writeFile(wb, `تقرير_شامل_${new Date().toLocaleDateString()}.xlsx`);
+    });
+}
+
+// ================== حفظ الحضور (الأولاد) ==================
+async function saveDailyAttendance(cid, date) {
+    const { data: existing } = await supabaseClient.from('attendance').select('id').eq('date', date).in('student_id', students.map(s => s.id));
+    if (existing && existing.length > 0) {
+        if (!confirm(`⚠️ هذا اليوم (${date}) مسجل بالفعل.\nهل تريد تعديل البيانات؟`)) return;
+    }
+    if (!confirm('هل أنت متأكد من حفظ البيانات؟')) return;
+    isLoading = true;
+    const sb = document.querySelector('.save-btn');
+    if (sb) { sb.disabled = true; sb.innerHTML = 'جاري الحفظ <span class="spinner"></span>'; }
+    const records = [];
+    const inputs = document.querySelectorAll('[data-id]');
+    const map = new Map();
+    inputs.forEach(inp => {
+        const sid = inp.dataset.id;
+        const field = inp.dataset.field;
+        if (!map.has(sid)) map.set(sid, { student_id: sid, mass: 0, communion: 0, class: 0, behavior: 0, notes: '' });
+        const rec = map.get(sid);
+        if (field === 'mass') rec.mass = parseInt(inp.value) || 0;
+        if (field === 'communion') rec.communion = parseInt(inp.value) || 0;
+        if (field === 'class') rec.class = parseInt(inp.value) || 0;
+        if (field === 'behavior') rec.behavior = parseInt(inp.value) || 0;
+        if (field === 'notes') rec.notes = inp.value;
+    });
+    for (let [sid, rec] of map) {
+        if (rec.mass > 0 || rec.communion > 0 || rec.class > 0 || rec.behavior > 0 || rec.notes.trim() !== '') {
+            records.push({ student_id: sid, date, mass_grade: rec.mass, communion_grade: rec.communion, class_grade: rec.class, behavior_grade: rec.behavior, notes: rec.notes, recorded_by: currentUser.id });
+        } else {
+            await supabaseClient.from('attendance').delete().match({ student_id: sid, date });
+        }
+    }
+    let hasError = false;
+    for (let rec of records) {
+        const { error } = await supabaseClient.from('attendance').upsert(rec, { onConflict: 'student_id, date' });
+        if (error) { console.error(error); hasError = true; }
+    }
+    isLoading = false;
+    if (sb) { sb.disabled = false; sb.innerHTML = 'حفظ الحضور'; }
+    const md = document.getElementById('message');
+    if (hasError) md.innerHTML = '<div class="message error">حدث خطأ أثناء الحفظ</div>';
+    else {
+        md.innerHTML = '<div class="message success">تم حفظ الحضور بنجاح</div>';
+        attendanceRecords = await fetchAttendanceForDate(cid, date);
+        if (currentUser.role === 'admin') renderDailyTableAdmin(cid, date);
+        else renderDailyTable(date);
+    }
+}
+
+async function logout() {
+    await supabaseClient.auth.signOut();
+    init();
+}
+
+window.showCoupon = async function (sid, s, e) {
+    const st = window.students?.find(x => x.id === sid);
+    if (!st) return;
+    const recs = window.attendanceRecords?.filter(r => r.student_id === sid) || [];
+    const cn = window.currentUser?.classes?.class_name || 'الفصل';
+    const html = generateCouponHTML(st.name, cn, s, e, recs);
+    document.getElementById('couponInner').innerHTML = html + `<button class="print-btn" onclick="printCurrentCoupon()">🖨️ طباعة الكوبون</button>`;
+    openCouponModal();
+};
+window.printCurrentCoupon = function () {
+    printCoupon(document.getElementById('couponInner').innerHTML);
+};
+
+// ============================================================
+// ================== حضور الخدام ==================
+// ============================================================
+async function fetchServantsForClass(cid) {
+    const { data, error } = await supabaseClient.from('servants').select('*').eq('class_id', cid).eq('active', true).order('name');
+    if (error) { console.error(error); return []; }
+    return data || [];
+}
+
+async function fetchAllServants() {
+    const { data, error } = await supabaseClient.from('servants').select('*').eq('active', true).order('name');
+    if (error) { console.error(error); return []; }
+    return data || [];
+}
+
+async function fetchServantAttendanceForDate(ids, date) {
+    if (!ids.length) return [];
+    const { data, error } = await supabaseClient.from('servant_attendance').select('*').in('servant_id', ids).eq('date', date);
+    if (error) { console.error(error); return []; }
+    return data || [];
+}
+
+async function fetchServantAttendanceForRange(ids, s, e) {
+    if (!ids.length) return [];
+    const { data, error } = await supabaseClient.from('servant_attendance').select('*').in('servant_id', ids).gte('date', s).lte('date', e).order('date', { ascending: true });
+    if (error) { console.error(error); return []; }
+    return data || [];
+}
+
+// ============ صفحة اختيار الفصل والتاريخ ============
+function renderServantSelector() {
+    let options = '<option value="">اختر الفصل</option>';
+    allClasses.forEach(cls => { options += `<option value="${cls.id}">${cls.class_name}</option>`; });
+    const today = getTodayDate();
+    document.getElementById('app').innerHTML = `
+        <div class="container">
+            <div class="header" style="border-bottom:none;">
+                <div class="logo-container"><img src="${LOGO_URL}" class="logo-img"><span class="logo-text">حضور الخدام</span></div>
+                <div><button class="btn" id="backToAdminMain2">🔙 العودة للرئيسية</button></div>
+            </div>
+            <div style="background:#f9fafb;padding:20px;border-radius:20px;margin-bottom:20px;">
+                <label style="display:block;font-weight:600;color:#374151;margin-bottom:10px;">👥 اختر الفصل:</label>
+                <select id="servantClassSelect" style="width:100%;padding:15px;border-radius:12px;font-size:16px;border:1px solid #d1d5db;margin-bottom:20px;">${options}</select>
+                <label style="display:block;font-weight:600;color:#374151;margin-bottom:10px;">📅 التاريخ (الجمعة):</label>
+                <input type="date" id="servantDateSelector" value="${today}" style="width:100%;padding:15px;border-radius:12px;font-size:16px;border:1px solid #d1d5db;margin-bottom:20px;">
+                <button class="btn btn-success" id="showServantAttendanceBtn" style="width:100%;padding:18px;font-size:18px;border-radius:15px;">📋 عرض كشف الحضور</button>
+            </div>
+        </div>
+    `;
+    document.getElementById('backToAdminMain2').onclick = () => { loadAdminView(); };
+    document.getElementById('showServantAttendanceBtn').onclick = () => {
+        const cid = document.getElementById('servantClassSelect').value;
+        const date = document.getElementById('servantDateSelector').value;
+        if (!cid) { alert('⚠️ اختر الفصل'); return; }
+        if (!date) { alert('⚠️ اختر التاريخ'); return; }
+        renderServantAttendance(cid, date);
+    };
+}
+
+// ============ صفحة تسجيل حضور الخدام ============
+async function renderServantAttendance(cid, selectedDate) {
+    currentServants = await fetchServantsForClass(cid);
+    const ids = currentServants.map(s => s.id);
+    servantAttendanceRecords = await fetchServantAttendanceForDate(ids, selectedDate);
+    const ci = allClasses.find(c => c.id === cid);
+    const cn = ci ? ci.class_name : '';
+    let rows = '';
+    for (const s of currentServants) {
+        const r = servantAttendanceRecords.find(a => a.servant_id === s.id);
+        const aM = r ? r.attended_mass : false;
+        const aO = r ? r.attended_opening : false;
+        const aF = r ? r.attended_fasl : false;
+        const aP = r ? r.attended_preparation : false;
+        const notes = r ? (r.notes || '') : '';
+        const totalCheck = (aM ? 1 : 0) + (aO ? 1 : 0) + (aF ? 1 : 0) + (aP ? 1 : 0);
+        const isAbsentAll = totalCheck === 0;
+        const level = await getServantAbsenceLevel(s.id, selectedDate, isAbsentAll);
+        const rowStyle = getAbsenceStyle(level);
+        const badge = getAbsenceBadge(level);
+        rows += `<tr data-servant-id="${s.id}" style="${rowStyle}">
+            <td><div class="name-cell"><span>${s.name}</span>${badge}</div></td>
+            <td><input type="checkbox" class="servant-check mass-check" ${aM ? 'checked' : ''}></td>
+            <td><input type="checkbox" class="servant-check opening-check" ${aO ? 'checked' : ''}></td>
+            <td><input type="checkbox" class="servant-check fasl-check" ${aF ? 'checked' : ''}></td>
+            <td><input type="checkbox" class="servant-check preparation-check" ${aP ? 'checked' : ''}></td>
+            <td><input type="text" class="grade-input" value="${notes.replace(/"/g, '&quot;')}" placeholder="ملاحظات"></td>
+        </tr>`;
+    }
+    document.getElementById('app').innerHTML = `
+        <div class="container">
+            <div class="header" style="border-bottom:none;">
+                <div class="logo-container"><img src="${LOGO_URL}" class="logo-img"><span class="logo-text">حضور الخدام - ${cn}</span></div>
+                <div>
+                    <button class="btn" id="backToServantSelector">🔙 العودة</button>
+                    <button class="btn btn-warning" id="servantReportBtn">📊 تقرير حضور</button>
+                </div>
+            </div>
+            <div class="date-bar" style="flex-direction:column;align-items:stretch;">
+                <label style="margin-bottom:8px;">📅 التاريخ:</label>
+                <input type="date" id="servantAttendanceDate" value="${selectedDate}">
+            </div>
+            <div class="dashboard-summary" id="servantDashboard"></div>
+            <div class="table-wrapper">
+                <table class="attendance-table">
+                    <thead>
+                        <tr>
+                            <th style="width:30%;">الاسم</th>
+                            <th style="width:14%;">القداس</th>
+                            <th style="width:14%;">الافتتاحية</th>
+                            <th style="width:14%;">حضور الفصل</th>
+                            <th style="width:14%;">التحضير</th>
+                            <th style="width:14%;">ملاحظات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="servantAttendanceBody">${rows}</tbody>
+                </table>
+            </div>
+            <button class="save-btn" id="saveServantAttendance">💾 حفظ حضور الخدام</button>
+            <div id="servantMessage"></div>
+        </div>
+    `;
+    updateServantDashboard();
+    document.getElementById('backToServantSelector').onclick = () => renderServantSelector();
+    document.getElementById('servantReportBtn').onclick = () => renderServantReport(cid);
+    document.getElementById('saveServantAttendance').onclick = () => saveServantAttendance(cid, selectedDate);
+    document.getElementById('servantAttendanceDate').onchange = async (e) => { await renderServantAttendance(cid, e.target.value); };
+    document.querySelectorAll('.servant-check').forEach(chk => {
+        chk.addEventListener('change', () => {
+            const row = chk.closest('tr');
+            const m = row.querySelector('.mass-check')?.checked;
+            const o = row.querySelector('.opening-check')?.checked;
+            const f = row.querySelector('.fasl-check')?.checked;
+            const p = row.querySelector('.preparation-check')?.checked;
+            const hasAny = m || o || f || p;
+            if (hasAny) {
+                row.style.background = '#f0fdf4';
+                const badge = row.querySelector('.absent-warning, .repeated-absence, .long-absence');
+                if (badge) badge.remove();
+            } else {
+                row.style.background = '#fffbeb';
+            }
+            updateServantDashboard();
+        });
+    });
+}
+
+function updateServantDashboard() {
+    const total = currentServants.length;
+    let presentAll = 0, presentMass = 0, presentOpening = 0, presentFasl = 0, presentPreparation = 0;
+    document.querySelectorAll('#servantAttendanceBody tr').forEach(row => {
+        const m = row.querySelector('.mass-check')?.checked;
+        const o = row.querySelector('.opening-check')?.checked;
+        const f = row.querySelector('.fasl-check')?.checked;
+        const p = row.querySelector('.preparation-check')?.checked;
+        if (m) presentMass++;
+        if (o) presentOpening++;
+        if (f) presentFasl++;
+        if (p) presentPreparation++;
+        if (m && o && f && p) presentAll++;
+    });
+    const dash = document.getElementById('servantDashboard');
+    if (dash) {
+        dash.innerHTML = `<div class="stat-card"><h4>عدد الخدام</h4><div class="value">${total}</div></div>
+            <div class="stat-card"><h4>حضور كامل</h4><div class="value">${presentAll}</div></div>
+            <div class="stat-card"><h4>القداس</h4><div class="value">${presentMass}</div></div>
+            <div class="stat-card"><h4>الافتتاحية</h4><div class="value">${presentOpening}</div></div>
+            <div class="stat-card"><h4>حضور الفصل</h4><div class="value">${presentFasl}</div></div>
+            <div class="stat-card"><h4>التحضير</h4><div class="value">${presentPreparation}</div></div>`;
+    }
+}
+
+// ============ حفظ حضور الخدام ============
+async function saveServantAttendance(cid, date) {
+    const ids = currentServants.map(s => s.id);
+    const { data: existing } = await supabaseClient.from('servant_attendance').select('id').eq('date', date).in('servant_id', ids);
+    if (existing && existing.length > 0) {
+        const uc = confirm(`⚠️ تنبيه مهم ⚠️\n\nهذا اليوم (${date}) مسجل بالفعل لحضور الخدام.\n\nهل تريد تعديل البيانات القديمة؟`);
+        if (!uc) return;
+    }
+    if (!confirm('هل أنت متأكد من حفظ حضور الخدام؟')) return;
+    const records = [];
+    document.querySelectorAll('#servantAttendanceBody tr').forEach(row => {
+        const sid = row.dataset.servantId;
+        const aM = row.querySelector('.mass-check')?.checked || false;
+        const aO = row.querySelector('.opening-check')?.checked || false;
+        const aF = row.querySelector('.fasl-check')?.checked || false;
+        const aP = row.querySelector('.preparation-check')?.checked || false;
+        const notes = row.querySelector('.grade-input')?.value || '';
+        records.push({ servant_id: sid, date: date, attended_mass: aM, attended_opening: aO, attended_fasl: aF, attended_preparation: aP, notes: notes, recorded_by: currentUser.id });
+    });
+    const sb = document.getElementById('saveServantAttendance');
+    if (sb) { sb.disabled = true; sb.innerHTML = 'جاري الحفظ <span class="spinner"></span>'; }
+    let hasError = false;
+    for (const rec of records) {
+        const { error } = await supabaseClient.from('servant_attendance').upsert(rec, { onConflict: 'servant_id, date' });
+        if (error) { console.error(error); hasError = true; }
+    }
+    if (sb) { sb.disabled = false; sb.innerHTML = '💾 حفظ حضور الخدام'; }
+    const msg = document.getElementById('servantMessage');
+    if (hasError) msg.innerHTML = '<div class="message error">حدث خطأ أثناء الحفظ</div>';
+    else {
+        msg.innerHTML = '<div class="message success">✅ تم حفظ حضور الخدام بنجاح</div>';
+        setTimeout(() => renderServantAttendance(cid, date), 1000);
+    }
+}
+
+// ============ تقرير فصل واحد (موجز) ============
+async function renderServantReport(cid) {
+    const sl = await fetchServantsForClass(cid);
+    const ids = sl.map(s => s.id);
+    const e = getTodayDate();
+    const sd = new Date();
+    sd.setDate(sd.getDate() - 56);
+    const s = `${sd.getFullYear()}-${String(sd.getMonth() + 1).padStart(2, '0')}-${String(sd.getDate()).padStart(2, '0')}`;
+    const ci = allClasses.find(c => c.id === cid);
+    const cn = ci ? ci.class_name : '';
+    const ar = await fetchServantAttendanceForRange(ids, s, e);
+
+    function build(recs) {
+        return sl.map(x => {
+            const r = recs.filter(y => y.servant_id === x.id);
+            // ✅ عدد التسجيلات = فقط السجلات اللي فيها على الأقل checkbox متعلم
+            const validRecs = r.filter(y => y.attended_mass || y.attended_opening || y.attended_fasl || y.attended_preparation);
+            return {
+                name: x.name,
+                totalDays: validRecs.length,
+                totalMass: r.filter(y => y.attended_mass).length,
+                totalOpening: r.filter(y => y.attended_opening).length,
+                totalFasl: r.filter(y => y.attended_fasl).length,
+                totalPreparation: r.filter(y => y.attended_preparation).length,
+                totalFull: r.filter(y => y.attended_mass && y.attended_opening && y.attended_fasl && y.attended_preparation).length
+            };
+        });
+    }
+    function render(sum) {
+        let rows = '';
+        sum.forEach(x => {
+            rows += `<tr><td>${x.name}</td><td>${x.totalDays}</td><td>${x.totalMass}</td><td>${x.totalOpening}</td><td>${x.totalFasl}</td><td>${x.totalPreparation}</td><td class="total-grade">${x.totalFull}</td></tr>`;
+        });
+        return rows;
+    }
+
+    const summaryData = build(ar);
+    document.getElementById('app').innerHTML = `
+        <div class="container">
+            <div class="header" style="border-bottom:none;">
+                <div class="logo-container"><img src="${LOGO_URL}" class="logo-img"><span class="logo-text">تقرير حضور الخدام - ${cn}</span></div>
+                <div>
+                    <button class="btn" id="backToServantAttendanceBtn">🔙 العودة للتسجيل</button>
+                    <button class="btn btn-info" id="servantDetailedReportBtn">📋 تقرير مفصل</button>
+                    <button class="btn btn-success" id="exportServantReportBtn">📥 تصدير Excel</button>
+                </div>
+            </div>
+            <div class="date-range">
+                <label>من تاريخ:</label>
+                <input type="date" id="servantReportStart" value="${s}">
+                <label>إلى تاريخ:</label>
+                <input type="date" id="servantReportEnd" value="${e}">
+                <button class="btn" id="refreshServantReportBtn">عرض</button>
+            </div>
+            <div class="table-wrapper">
+                <table class="attendance-table">
+                    <thead>
+                        <tr>
+                            <th>الاسم</th>
+                            <th>عدد التسجيلات</th>
+                            <th>حضور القداس</th>
+                            <th>حضور الافتتاحية</th>
+                            <th>حضور الفصل</th>
+                            <th>حضور التحضير</th>
+                            <th>حضور كامل</th>
+                        </tr>
+                    </thead>
+                    <tbody id="servantReportBody">${render(summaryData)}</tbody>
+                </table>
+            </div>
+        </div>
+    `;
+    document.getElementById('backToServantAttendanceBtn').onclick = () => renderServantAttendance(cid, getTodayDate());
+    document.getElementById('servantDetailedReportBtn').onclick = () => renderServantDetailedReport(cid, s, e);
+    document.getElementById('refreshServantReportBtn').onclick = async () => {
+        const ns = document.getElementById('servantReportStart').value;
+        const ne = document.getElementById('servantReportEnd').value;
+        const nr = await fetchServantAttendanceForRange(ids, ns, ne);
+        const nsum = build(nr);
+        document.getElementById('servantReportBody').innerHTML = render(nsum);
+    };
+    document.getElementById('exportServantReportBtn').onclick = () => {
+        const wsData = [['الاسم', 'عدد التسجيلات', 'حضور القداس', 'حضور الافتتاحية', 'حضور الفصل', 'حضور التحضير', 'حضور كامل']];
+        summaryData.forEach(x => wsData.push([x.name, x.totalDays, x.totalMass, x.totalOpening, x.totalFasl, x.totalPreparation, x.totalFull]));
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        XLSX.utils.book_append_sheet(wb, ws, 'حضور الخدام');
+        XLSX.writeFile(wb, `تقرير_حضور_الخدام_${cn}_${new Date().toLocaleDateString()}.xlsx`);
+    };
+}
+
+// ============ التقرير المفصل للخدام (تاريخ + ملاحظات) ============
+async function renderServantDetailedReport(cid, s, e) {
+    const sl = await fetchServantsForClass(cid);
+    const ids = sl.map(x => x.id);
+    const ci = allClasses.find(c => c.id === cid);
+    const cn = ci ? ci.class_name : '';
+    const attRecords = await fetchServantAttendanceForRange(ids, s, e);
+    const servantMap = new Map(sl.map(x => [x.id, x.name]));
+
+    let rows = '';
+    attRecords.forEach(r => {
+        const name = servantMap.get(r.servant_id) || 'غير معروف';
+        const check = (v) => v ? '✅' : '❌';
+        rows += `<tr>
+            <td>${name}</td>
+            <td>${r.date}</td>
+            <td>${check(r.attended_mass)}</td>
+            <td>${check(r.attended_opening)}</td>
+            <td>${check(r.attended_fasl)}</td>
+            <td>${check(r.attended_preparation)}</td>
+            <td>${r.notes || ''}</td>
+        </tr>`;
+    });
+    if (!rows) rows = '<tr><td colspan="7" style="text-align:center;">لا توجد بيانات في هذه الفترة</td></tr>';
+
+    document.getElementById('app').innerHTML = `
+        <div class="container">
+            <div class="header" style="border-bottom:none;">
+                <div class="logo-container"><img src="${LOGO_URL}" class="logo-img"><span class="logo-text">تقرير حضور الخدام المفصل - ${cn}</span></div>
+                <div>
+                    <button class="btn" id="backToServantSummaryBtn">🔙 العودة للموجز</button>
+                    <button class="btn btn-success" id="exportServantDetailedBtn">📥 تصدير Excel</button>
+                </div>
+            </div>
+            <div class="date-range">
+                <label>من تاريخ:</label>
+                <input type="date" id="servantDetailedStart" value="${s}">
+                <label>إلى تاريخ:</label>
+                <input type="date" id="servantDetailedEnd" value="${e}">
+                <button class="btn" id="refreshServantDetailedBtn">عرض</button>
+            </div>
+            <div class="table-wrapper">
+                <table class="attendance-table">
+                    <thead>
+                        <tr>
+                            <th>الاسم</th>
+                            <th>التاريخ</th>
+                            <th>القداس</th>
+                            <th>الافتتاحية</th>
+                            <th>حضور الفصل</th>
+                            <th>التحضير</th>
+                            <th>ملاحظات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="servantDetailedBody">${rows}</tbody>
+                </table>
+            </div>
+        </div>
+    `;
+    document.getElementById('backToServantSummaryBtn').onclick = () => renderServantReport(cid);
+    document.getElementById('refreshServantDetailedBtn').onclick = async () => {
+        const ns = document.getElementById('servantDetailedStart').value;
+        const ne = document.getElementById('servantDetailedEnd').value;
+        renderServantDetailedReport(cid, ns, ne);
+    };
+    document.getElementById('exportServantDetailedBtn').onclick = () => {
+        const wsData = [['الاسم', 'التاريخ', 'القداس', 'الافتتاحية', 'حضور الفصل', 'التحضير', 'ملاحظات']];
+        attRecords.forEach(r => {
+            const name = servantMap.get(r.servant_id) || 'غير معروف';
+            wsData.push([name, r.date, r.attended_mass ? 'حاضر' : 'غائب', r.attended_opening ? 'حاضر' : 'غائب', r.attended_fasl ? 'حاضر' : 'غائب', r.attended_preparation ? 'حاضر' : 'غائب', r.notes || '']);
+        });
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        XLSX.utils.book_append_sheet(wb, ws, 'تقرير مفصل');
+        XLSX.writeFile(wb, `تقرير_حضور_الخدام_مفصل_${cn}_${new Date().toLocaleDateString()}.xlsx`);
+    };
+}
+
+// ============ تقرير مجمع لكل الفصول ============
+async function renderAllServantsReport() {
+    const allS = await fetchAllServants();
+    const e = getTodayDate();
+    const sd = new Date();
+    sd.setDate(sd.getDate() - 56);
+    const s = `${sd.getFullYear()}-${String(sd.getMonth() + 1).padStart(2, '0')}-${String(sd.getDate()).padStart(2, '0')}`;
+    const ids = allS.map(x => x.id);
+    const ar = await fetchServantAttendanceForRange(ids, s, e);
+
+    function build(recs) {
+        return allClasses.map(cls => {
+            const cs = allS.filter(x => x.class_id === cls.id);
+            const rows = cs.map(x => {
+                const r = recs.filter(y => y.servant_id === x.id);
+                const validRecs = r.filter(y => y.attended_mass || y.attended_opening || y.attended_fasl || y.attended_preparation);
+                return {
+                    name: x.name,
+                    totalDays: validRecs.length,
+                    totalMass: r.filter(y => y.attended_mass).length,
+                    totalOpening: r.filter(y => y.attended_opening).length,
+                    totalFasl: r.filter(y => y.attended_fasl).length,
+                    totalPreparation: r.filter(y => y.attended_preparation).length,
+                    totalFull: r.filter(y => y.attended_mass && y.attended_opening && y.attended_fasl && y.attended_preparation).length
+                };
+            });
+            return { className: cls.class_name, data: rows };
+        });
+    }
+    function render(sum) {
+        return sum.map(g => {
+            if (!g.data.length) return '';
+            return `<h3 style="margin:20px 0 10px;color:#1e3a8a;">${g.className}</h3>
+                <div class="table-wrapper"><table class="attendance-table">
+                <thead><tr><th>الاسم</th><th>عدد التسجيلات</th><th>حضور القداس</th><th>حضور الافتتاحية</th><th>حضور الفصل</th><th>حضور التحضير</th><th>حضور كامل</th></tr></thead>
+                <tbody>${g.data.map(x => `<tr><td>${x.name}</td><td>${x.totalDays}</td><td>${x.totalMass}</td><td>${x.totalOpening}</td><td>${x.totalFasl}</td><td>${x.totalPreparation}</td><td class="total-grade">${x.totalFull}</td></tr>`).join('')}</tbody>
+                </table></div>`;
+        }).join('');
+    }
+
+    const summaryGroups = build(ar);
+    document.getElementById('app').innerHTML = `
+        <div class="container">
+            <div class="header" style="border-bottom:none;">
+                <div class="logo-container"><img src="${LOGO_URL}" class="logo-img"><span class="logo-text">تقرير حضور الخدام - جميع الفصول</span></div>
+                <div>
+                    <button class="btn" id="backToAdminMain3">🔙 العودة للرئيسية</button>
+                    <button class="btn btn-success" id="exportAllServantsBtn">📥 تصدير Excel مجمع</button>
+                </div>
+            </div>
+            <div class="date-range">
+                <label>من تاريخ:</label>
+                <input type="date" id="allServantsStart" value="${s}">
+                <label>إلى تاريخ:</label>
+                <input type="date" id="allServantsEnd" value="${e}">
+                <button class="btn" id="refreshAllServantsBtn">عرض</button>
+            </div>
+            <div id="allServantsReportBody">${render(summaryGroups)}</div>
+        </div>
+    `;
+    document.getElementById('backToAdminMain3').onclick = () => loadAdminView();
+    document.getElementById('refreshAllServantsBtn').onclick = async () => {
+        const ns = document.getElementById('allServantsStart').value;
+        const ne = document.getElementById('allServantsEnd').value;
+        const nr = await fetchServantAttendanceForRange(ids, ns, ne);
+        const ng = build(nr);
+        document.getElementById('allServantsReportBody').innerHTML = render(ng);
+    };
+    document.getElementById('exportAllServantsBtn').onclick = () => {
+        const wsData = [['الفصل', 'الاسم', 'عدد التسجيلات', 'حضور القداس', 'حضور الافتتاحية', 'حضور الفصل', 'حضور التحضير', 'حضور كامل']];
+        summaryGroups.forEach(g => {
+            g.data.forEach(x => wsData.push([g.className, x.name, x.totalDays, x.totalMass, x.totalOpening, x.totalFasl, x.totalPreparation, x.totalFull]));
+        });
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        XLSX.utils.book_append_sheet(wb, ws, 'حضور الخدام');
+        XLSX.writeFile(wb, `تقرير_حضور_الخدام_مجمع_${new Date().toLocaleDateString()}.xlsx`);
+    };
+}
+
+// ================== تسجيل الدخول والتهيئة ==================
+async function init() {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session?.user) {
+        const { data: userData } = await supabaseClient.from('users').select('*, classes(id, class_name)').eq('id', session.user.id).single();
+        if (userData) {
+            currentUser = userData;
+            currentClassId = userData.class_id;
+            if (userData.role === 'admin') {
+                allClasses = await fetchAllClasses();
+                loadAdminView();
+            } else {
+                await loadServantView();
+            }
+        } else renderLogin();
+    } else renderLogin();
+}
+
+function renderLogin() {
+    document.getElementById('app').innerHTML = `
+        <div>
+            <div class="header" style="justify-content:center;border-bottom:none;">
+                <div class="logo-container"><img src="${LOGO_URL}" class="logo-img"><span class="logo-text">خدمة خامسة وسادسة</span></div>
+            </div>
+            <div class="login-form">
+                <h2>تسجيل الدخول</h2>
+                <input type="email" id="email" placeholder="البريد الإلكتروني" />
+                <input type="password" id="password" placeholder="كلمة السر" />
+                <button class="btn" id="loginBtn" style="width:100%;">دخول</button>
+                <div id="loginMessage" style="margin-top:15px;"></div>
+            </div>
+        </div>
+    `;
+    document.getElementById('loginBtn').addEventListener('click', async () => {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) document.getElementById('loginMessage').innerHTML = `<div class="message error">${error.message}</div>`;
+        else init();
+    });
+}
+
+async function loadServantView() {
+    const { data: stds } = await supabaseClient.from('students').select('*').eq('class_id', currentClassId).eq('active', true);
+    students = deduplicateStudents(stds || []);
+    viewMode = 'daily';
+    await renderDailyView();
+}
+
+async function loadAdminView() {
+    let options = '<option value="">اختر الفصل</option>';
+    allClasses.forEach(cls => { options += `<option value="${cls.id}">${cls.class_name}</option>`; });
+    document.getElementById('app').innerHTML = `
+        <div>
+            <div class="header">
+                <div class="logo-container"><img src="${LOGO_URL}" class="logo-img"><span class="logo-text">خدمة خامسة وسادسة</span></div>
+                <div>
+                    <button class="btn btn-info" id="allClassesReportBtn">📋 تقرير شامل</button>
+                    <button class="btn btn-servant" id="servantAttendanceBtn">👥 حضور الخدام</button>
+                    <button class="btn btn-coupon" id="allServantsReportBtn">📊 تقرير الخدام</button>
+                    <button class="btn" id="logoutBtn">تسجيل خروج</button>
+                </div>
+            </div>
+            <div style="margin-bottom:20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                <label>اختر الفصل: </label>
+                <select id="classSelect" style="padding:8px;border-radius:12px;flex:1;min-width:200px;">${options}</select>
+            </div>
+            <div id="adminContent"></div>
+        </div>
+    `;
+    document.getElementById('logoutBtn').addEventListener('click', logout);
+    document.getElementById('servantAttendanceBtn').addEventListener('click', () => renderServantSelector());
+    document.getElementById('allServantsReportBtn').addEventListener('click', () => renderAllServantsReport());
+    document.getElementById('allClassesReportBtn').addEventListener('click', async () => {
+        viewMode = 'allClasses';
+        const e = getTodayDate(), s = getThreeWeeksAgo();
+        attendanceRecords = await fetchAttendanceForAllClasses(s, e);
+        const allStudents = await fetchAllStudents();
+        renderAllClassesReport(allStudents, attendanceRecords, s, e);
+    });
+    document.getElementById('classSelect').addEventListener('change', async (ev) => {
+        const cid = ev.target.value;
+        if (cid) {
+            currentAdminClassId = cid;
+            const { data: s } = await supabaseClient.from('students').select('*').eq('class_id', cid).eq('active', true);
+            students = deduplicateStudents(s || []);
+            viewMode = 'daily';
+            await renderDailyAdminView(cid);
+        } else document.getElementById('adminContent').innerHTML = '';
+    });
+}
+
+document.getElementById('confirmAddStudent').addEventListener('click', handleAddStudent);
+document.getElementById('cancelAddStudent').addEventListener('click', hideAddStudentModal);
+init();
+</script>
+</body>
+</html>
