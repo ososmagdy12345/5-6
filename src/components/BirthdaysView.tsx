@@ -29,10 +29,12 @@ interface BirthdaysViewProps {
   servants: Servant[];
   userClassId: string | null;
   needsSqlMigrationHint: boolean;
+  pendingLocalBirthdaysCount: number;
   gmailUser: User | null;
   gmailToken: string | null;
   onGmailConnected: (user: User, token: string) => void;
   onGmailDisconnected: () => void;
+  onSyncLocalBirthdays: () => Promise<void>;
   onRefreshPeople: () => Promise<void>;
   onToast: (type: 'success' | 'error' | 'info' | 'birthday', text: string) => void;
   onBack: () => void;
@@ -54,10 +56,12 @@ export const BirthdaysView: React.FC<BirthdaysViewProps> = ({
   servants,
   userClassId,
   needsSqlMigrationHint,
+  pendingLocalBirthdaysCount,
   gmailUser,
   gmailToken,
   onGmailConnected,
   onGmailDisconnected,
+  onSyncLocalBirthdays,
   onRefreshPeople,
   onToast,
   onBack,
@@ -81,6 +85,7 @@ export const BirthdaysView: React.FC<BirthdaysViewProps> = ({
   // Force re-render when congratulating someone today
   const [congratsTick, setCongratsTick] = useState(0);
   const [showExcelImport, setShowExcelImport] = useState(false);
+  const [syncingNow, setSyncingNow] = useState(false);
 
   const classMap = useMemo(() => new Map(classes.map((c) => [c.id, c.class_name])), [classes]);
 
@@ -305,6 +310,50 @@ export const BirthdaysView: React.FC<BirthdaysViewProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Cross-device sync alert if birth_date column is missing or local-only entries exist */}
+      {(needsSqlMigrationHint || pendingLocalBirthdaysCount > 0) && (
+        <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="font-bold">
+                ⚠️ التواريخ المحفوظة حالياً تظهر على هذا الجهاز فقط
+                {pendingLocalBirthdaysCount > 0 ? ` (${pendingLocalBirthdaysCount} تاريخ في انتظار المزامنة)` : ''}
+              </div>
+              <p className="mt-1 text-xs text-amber-900">
+                لظهور أعياد الميلاد وتعديلات Excel على كل الأجهزة فوراً، أضف عمود{' '}
+                <code className="rounded bg-amber-200/70 px-1 font-mono">birth_date</code> مرة واحدة في Supabase SQL Editor ثم اضغط زر المزامنة.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  handleCopyText(
+                    'ALTER TABLE students ADD COLUMN IF NOT EXISTS birth_date date;\nALTER TABLE servants ADD COLUMN IF NOT EXISTS birth_date date;',
+                    'تم نسخ أمر SQL — شغّله في Supabase SQL Editor ثم اضغط مزامنة',
+                  )
+                }
+                className="rounded-full bg-slate-900 px-4 py-2 text-xs font-bold text-white hover:bg-slate-800"
+              >
+                📋 نسخ أمر SQL
+              </button>
+              <button
+                type="button"
+                disabled={syncingNow}
+                onClick={async () => {
+                  setSyncingNow(true);
+                  await onSyncLocalBirthdays();
+                  setSyncingNow(false);
+                }}
+                className="rounded-full bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-60"
+              >
+                {syncingNow ? 'جاري المزامنة...' : '🔄 مزامنة على كل الأجهزة'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Today's Birthdays Highlight + Upcoming 7 Days */}
       <div className="grid gap-4 lg:grid-cols-2">
@@ -877,18 +926,32 @@ export const BirthdaysView: React.FC<BirthdaysViewProps> = ({
               <span>
                 ALTER TABLE students ADD COLUMN IF NOT EXISTS birth_date date; ALTER TABLE servants ADD COLUMN IF NOT EXISTS birth_date date;
               </span>
-              <button
-                type="button"
-                onClick={() =>
-                  handleCopyText(
-                    'ALTER TABLE students ADD COLUMN IF NOT EXISTS birth_date date;\nALTER TABLE servants ADD COLUMN IF NOT EXISTS birth_date date;',
-                    'تم نسخ أمر SQL لـ Supabase',
-                  )
-                }
-                className="rounded bg-slate-700 px-2.5 py-1 text-white hover:bg-slate-600"
-              >
-                نسخ SQL
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleCopyText(
+                      'ALTER TABLE students ADD COLUMN IF NOT EXISTS birth_date date;\nALTER TABLE servants ADD COLUMN IF NOT EXISTS birth_date date;',
+                      'تم نسخ أمر SQL لـ Supabase',
+                    )
+                  }
+                  className="rounded bg-slate-700 px-2.5 py-1 text-white hover:bg-slate-600"
+                >
+                  نسخ SQL
+                </button>
+                <button
+                  type="button"
+                  disabled={syncingNow}
+                  onClick={async () => {
+                    setSyncingNow(true);
+                    await onSyncLocalBirthdays();
+                    setSyncingNow(false);
+                  }}
+                  className="rounded bg-emerald-600 px-2.5 py-1 text-white hover:bg-emerald-700 disabled:opacity-60"
+                >
+                  {syncingNow ? '...' : 'مزامنة الآن'}
+                </button>
+              </div>
             </div>
           </div>
         )}

@@ -41,6 +41,32 @@ export function setLocalBirthdayOverride(role: PersonRole, id: string, date: str
   }
 }
 
+export function getAllLocalBirthdayOverrides(): Array<{
+  role: PersonRole;
+  id: string;
+  birthDate: string;
+}> {
+  const list: Array<{ role: PersonRole; id: string; birthDate: string }> = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key || !key.startsWith(OVERRIDE_KEY_PREFIX)) continue;
+      const rest = key.slice(OVERRIDE_KEY_PREFIX.length);
+      const sepIdx = rest.indexOf('_');
+      if (sepIdx <= 0) continue;
+      const role = rest.slice(0, sepIdx) as PersonRole;
+      const id = rest.slice(sepIdx + 1);
+      const val = localStorage.getItem(key);
+      if ((role === 'student' || role === 'servant') && id && val && /^\d{4}-\d{2}-\d{2}$/.test(val.trim())) {
+        list.push({ role, id, birthDate: val.trim() });
+      }
+    }
+  } catch {
+    // Ignore storage errors
+  }
+  return list;
+}
+
 export function extractBirthDate(
   record: Pick<Student | Servant, 'id' | 'birth_date' | 'birthday' | 'date_of_birth' | 'dob'>,
   role: PersonRole,

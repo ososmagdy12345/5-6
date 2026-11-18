@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { User } from 'firebase/auth';
-import { Bell, Cake, FileSpreadsheet, Mail, X } from 'lucide-react';
+import { Bell, Cake, FileSpreadsheet, Mail, RefreshCw, X } from 'lucide-react';
 import { AddStudentModal } from './components/AddStudentModal';
 import { BirthdaysView } from './components/BirthdaysView';
 import { ConfirmDialog } from './components/ConfirmDialog';
@@ -17,6 +17,8 @@ import {
   fetchAllClasses,
   fetchAllServants,
   fetchAllStudents,
+  subscribeToRealtimeChanges,
+  syncLocalBirthdaysToSupabase,
 } from './lib/supabase';
 import type { ClassInfo, Servant, Student, ToastMessage } from './types';
 import {
@@ -51,6 +53,9 @@ export default function App() {
   const [showExcelImport, setShowExcelImport] = useState(false);
   const [showNotifPanel, setShowNotifPanel] = useState(false);
   const [needsSqlHint, setNeedsSqlHint] = useState(false);
+  const [pendingLocalBirthdaysCount, setPendingLocalBirthdaysCount] = useState(0);
+  const [syncVersion, setSyncVersion] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
   const [notifPerm, setNotifPerm] = useState(getBrowserNotificationPermission());
 
   // Gmail OAuth state (in-memory token only)
@@ -81,9 +86,24 @@ export default function App() {
       fetchAllStudents(),
       fetchAllServants(),
     ]);
-    setClasses(cls);
-    setAllStudents(stds);
-    setAllServants(srvs);
+
+    const syncRes = await syncLocalBirthdaysToSupabase(stds, srvs);
+    setNeedsSqlHint(syncRes.needsColumnMigration);
+    setPendingLocalBirthdaysCount(syncRes.pendingLocalCount);
+
+    if (syncRes.syncedCount > 0) {
+      const [freshStds, freshSrvs] = await Promise.all([
+        fetchAllStudents(),
+        fetchAllServants(),
+      ]);
+      setClasses(cls);
+      setAllStudents(freshStds);
+      setAllServants(freshSrvs);
+    } else {
+      setClasses(cls);
+      setAllStudents(stds);
+      setAllServants(srvs);
+    }
   }, []);
 
   const initializeApp = useCallback(async () => {
@@ -95,6 +115,33 @@ export default function App() {
   useEffect(() => {
     initializeApp();
   }, [initializeApp]);
+
+  // Real-time multi-device sync via Supabase Realtime + tab focus / reconnect refresh
+  useEffect(() => {
+    const unsubscribeRealtime = subscribeToRealtimeChanges(async (tables) => {
+      if (tables.includes('classes') || tables.includes('students') || tables.includes('servants')) {
+        await loadAllData();
+      }
+      setSyncVersion((v) => v + 1);
+    });
+
+    const handleResumeSync = async () => {
+      if (document.hidden) return;
+      await loadAllData();
+      setSyncVersion((v) => v + 1);
+    };
+
+    window.addEventListener('focus', handleResumeSync);
+    window.addEventListener('online', handleResumeSync);
+    document.addEventListener('visibilitychange', handleResumeSync);
+
+    return () => {
+      unsubscribeRealtime();
+      window.removeEventListener('focus', handleResumeSync);
+      window.removeEventListener('online', handleResumeSync);
+      document.removeEventListener('visibilitychange', handleResumeSync);
+    };
+  }, [loadAllData]);
 
   useEffect(() => {
     return initGoogleAuth(
@@ -229,6 +276,35 @@ export default function App() {
 
   const refreshAllPeople = async () => {
     await loadAllData();
+    setSyncVersion((v) => v + 1);
+  };
+
+  const handleManualSync = async () => {
+    setRefreshing(true);
+    await loadAllData();
+    setSyncVersion((v) => v + 1);
+    setRefreshing(false);
+    pushToast('success', '✅ تم تحديث البيانات من السيرفر');
+  };
+
+  const handleSyncLocalBirthdays = async () => {
+    const res = await syncLocalBirthdaysToSupabase(allStudents, allServants);
+    setNeedsSqlHint(res.needsColumnMigration);
+    setPendingLocalBirthdaysCount(res.pendingLocalCount);
+    if (res.needsColumnMigration) {
+      pushToast(
+        'error',
+        '⚠️ عمود birth_date غير موجود في Supabase بعد. شغّل أمر SQL في Supabase SQL Editor أولاً.',
+      );
+      return;
+    }
+    await loadAllData();
+    setSyncVersion((v) => v + 1);
+    if (res.syncedCount > 0) {
+      pushToast('success', `✅ تم مزامنة ${res.syncedCount} تاريخ ميلاد وتسمع الآن على كل الأجهزة!`);
+    } else {
+      pushToast('success', '✅ جميع التواريخ متزامنة بالفعل على كل الأجهزة!');
+    }
   };
 
   const studentSectionInitialMode: StudentViewMode =
@@ -438,6 +514,17 @@ export default function App() {
                 <FileSpreadsheet className="h-4 w-4" />
                 استيراد Excel
               </button>
+
+              <button
+                type="button"
+                disabled={refreshing}
+                onClick={handleManualSync}
+                className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3.5 py-2.5 text-sm font-semibold text-gray-800 shadow-xs hover:bg-gray-200 disabled:opacity-60"
+                title="تحديث البيانات من السيرفر"
+              >
+                <RefreshCw className={`h-4 w-4 text-blue-900 ${refreshing ? 'animate-spin' : ''}`} />
+                تحديث
+              </button>
             </div>
           </div>
         )}
@@ -451,6 +538,7 @@ export default function App() {
             servants={allServants}
             userClassId={activeClassId}
             needsSqlMigrationHint={needsSqlHint}
+            pendingLocalBirthdaysCount={pendingLocalBirthdaysCount}
             gmailUser={gmailUser}
             gmailToken={gmailToken}
             onGmailConnected={(u, tok) => {
@@ -461,6 +549,7 @@ export default function App() {
               setGmailUser(null);
               setGmailToken(null);
             }}
+            onSyncLocalBirthdays={handleSyncLocalBirthdays}
             onRefreshPeople={refreshAllPeople}
             onToast={pushToast}
             onBack={() => setScreen('main')}
@@ -472,6 +561,7 @@ export default function App() {
             initialView={screen === 'servantSelector' ? 'selector' : 'allReport'}
             classes={classes}
             userId={null}
+            syncVersion={syncVersion}
             onBack={() => setScreen('main')}
             onToast={pushToast}
           />
@@ -486,6 +576,7 @@ export default function App() {
             classes={classes}
             students={[]}
             initialMode={studentSectionInitialMode}
+            syncVersion={syncVersion}
             onOpenAddStudent={() => setShowAddStudent(true)}
             onBackToAdminMain={() => setScreen('main')}
             onToast={pushToast}
@@ -524,6 +615,7 @@ export default function App() {
                 classes={classes}
                 students={activeClassStudents}
                 initialMode="daily"
+                syncVersion={syncVersion}
                 onOpenAddStudent={() => setShowAddStudent(true)}
                 onToast={pushToast}
               />

@@ -24,6 +24,7 @@ interface ServantsSectionProps {
   initialView: 'selector' | 'allReport';
   classes: ClassInfo[];
   userId: string | null;
+  syncVersion?: number;
   onBack: () => void;
   onToast: (type: 'success' | 'error' | 'info' | 'birthday', text: string) => void;
 }
@@ -42,6 +43,7 @@ export const ServantsSection: React.FC<ServantsSectionProps> = ({
   initialView,
   classes,
   userId,
+  syncVersion = 0,
   onBack,
   onToast,
 }) => {
@@ -50,6 +52,7 @@ export const ServantsSection: React.FC<ServantsSectionProps> = ({
   const [selectedDate, setSelectedDate] = useState(getTodayDate());
 
   const [rows, setRows] = useState<EditableServantRow[]>([]);
+  const [isDailyDirty, setIsDailyDirty] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -100,6 +103,7 @@ export const ServantsSection: React.FC<ServantsSectionProps> = ({
     );
 
     setRows(built);
+    setIsDailyDirty(false);
     setLoading(false);
   };
 
@@ -130,9 +134,25 @@ export const ServantsSection: React.FC<ServantsSectionProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialView]);
 
+  useEffect(() => {
+    if (syncVersion === 0) return;
+    if (subView === 'allReport') {
+      loadAllServantsReport(reportStart, reportEnd);
+    } else if (selectedClassId) {
+      if (subView === 'daily') {
+        if (!isDailyDirty && !saving) {
+          loadDailyServants(selectedClassId, selectedDate);
+        }
+      } else if (subView === 'report' || subView === 'detailed') {
+        loadClassReport(selectedClassId, reportStart, reportEnd);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [syncVersion]);
+
   const executeSaveServantAttendance = async () => {
     setSaving(true);
-    let hasError = false;
+    let firstErrorMsg = '';
     for (const row of rows) {
       const payload = {
         servant_id: row.servant.id,
@@ -149,15 +169,16 @@ export const ServantsSection: React.FC<ServantsSectionProps> = ({
         .upsert(payload, { onConflict: 'servant_id, date' });
       if (error) {
         console.error(error);
-        hasError = true;
+        if (!firstErrorMsg) firstErrorMsg = error.message;
       }
     }
     setSaving(false);
 
-    if (hasError) {
-      onToast('error', 'حدث خطأ أثناء حفظ حضور الخدام');
+    if (firstErrorMsg) {
+      onToast('error', `حدث خطأ أثناء حفظ حضور الخدام: ${firstErrorMsg}`);
     } else {
-      onToast('success', '✅ تم حفظ حضور الخدام بنجاح');
+      setIsDailyDirty(false);
+      onToast('success', '✅ تم حفظ حضور الخدام بنجاح ويظهر الآن على كل الأجهزة');
       await loadDailyServants(selectedClassId, selectedDate);
     }
   };
@@ -398,6 +419,7 @@ export const ServantsSection: React.FC<ServantsSectionProps> = ({
                       | 'attended_fasl'
                       | 'attended_preparation',
                   ) => {
+                    setIsDailyDirty(true);
                     setRows((prev) =>
                       prev.map((item, i) =>
                         i === idx ? { ...item, [field]: !item[field] } : item,
@@ -450,13 +472,14 @@ export const ServantsSection: React.FC<ServantsSectionProps> = ({
                           type="text"
                           value={row.notes}
                           placeholder="ملاحظات"
-                          onChange={(e) =>
+                          onChange={(e) => {
+                            setIsDailyDirty(true);
                             setRows((prev) =>
                               prev.map((item, i) =>
                                 i === idx ? { ...item, notes: e.target.value } : item,
                               ),
-                            )
-                          }
+                            );
+                          }}
                           className="w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-center text-gray-900"
                         />
                       </td>

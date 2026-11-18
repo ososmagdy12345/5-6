@@ -167,10 +167,17 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
 
     setImporting(false);
     await onImported(needsColumnMigration);
-    onToast(
-      'success',
-      `✅ تم استيراد البيانات بنجاح: تحديث ${updatedCount} وإضافة ${createdCount} طالب جديد`,
-    );
+    if (needsColumnMigration) {
+      onToast(
+        'info',
+        `⚠️ تم استيراد ${updatedCount} وتحديث ${createdCount} طالب محلياً على هذا الجهاز فقط. لمزامنتهم على كل الأجهزة أضف عمود birth_date في Supabase ثم اضغط مزامنة.`,
+      );
+    } else {
+      onToast(
+        'success',
+        `✅ تم استيراد وحفظ البيانات في قاعدة البيانات (${updatedCount} تحديث، ${createdCount} جديد) وتسمع الآن على كل الأجهزة!`,
+      );
+    }
     onClose();
   };
 

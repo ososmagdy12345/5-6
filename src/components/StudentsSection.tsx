@@ -30,6 +30,7 @@ interface StudentsSectionProps {
   classes: ClassInfo[];
   students: Student[];
   initialMode?: StudentViewMode;
+  syncVersion?: number;
   onOpenAddStudent: () => void;
   onBackToAdminMain?: () => void;
   onToast: (type: 'success' | 'error' | 'info' | 'birthday', text: string) => void;
@@ -53,6 +54,7 @@ export const StudentsSection: React.FC<StudentsSectionProps> = ({
   classes,
   students,
   initialMode = 'daily',
+  syncVersion = 0,
   onOpenAddStudent,
   onBackToAdminMain,
   onToast,
@@ -61,6 +63,7 @@ export const StudentsSection: React.FC<StudentsSectionProps> = ({
   const [selectedDate, setSelectedDate] = useState(getTodayDate());
   const [nameSearch, setNameSearch] = useState('');
   const [rows, setRows] = useState<EditableStudentRow[]>([]);
+  const [isDailyDirty, setIsDailyDirty] = useState(false);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -115,6 +118,7 @@ export const StudentsSection: React.FC<StudentsSectionProps> = ({
     );
 
     setRows(built);
+    setIsDailyDirty(false);
     setLoading(false);
   };
 
@@ -151,6 +155,22 @@ export const StudentsSection: React.FC<StudentsSectionProps> = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [classId, students, initialMode]);
+
+  useEffect(() => {
+    if (syncVersion === 0) return;
+    if (mode === 'allClasses') {
+      loadAllClassesData(startDate, endDate);
+    } else if (classId) {
+      if (mode === 'daily') {
+        if (!isDailyDirty && !saving) {
+          loadDailyData(selectedDate);
+        }
+      } else {
+        loadRangeData(startDate, endDate);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [syncVersion]);
 
   const dashboardStats = useMemo(() => {
     const totalStudents = students.length;
@@ -216,22 +236,23 @@ export const StudentsSection: React.FC<StudentsSectionProps> = ({
       }
     }
 
-    let hasError = false;
+    let firstErrorMsg = '';
     for (const rec of toUpsert) {
       const { error } = await supabaseClient
         .from('attendance')
         .upsert(rec, { onConflict: 'student_id, date' });
       if (error) {
         console.error(error);
-        hasError = true;
+        if (!firstErrorMsg) firstErrorMsg = error.message;
       }
     }
 
     setSaving(false);
-    if (hasError) {
-      onToast('error', 'حدث خطأ أثناء الحفظ');
+    if (firstErrorMsg) {
+      onToast('error', `حدث خطأ أثناء الحفظ: ${firstErrorMsg}`);
     } else {
-      onToast('success', '✅ تم حفظ الحضور بنجاح');
+      setIsDailyDirty(false);
+      onToast('success', '✅ تم حفظ الحضور بنجاح ويظهر الآن على كل الأجهزة');
       await loadDailyData(selectedDate);
     }
   };
@@ -907,6 +928,7 @@ export const StudentsSection: React.FC<StudentsSectionProps> = ({
                     Pick<EditableStudentRow, 'mass' | 'communion' | 'classGrade' | 'behavior' | 'notes'>
                   >,
                 ) => {
+                  setIsDailyDirty(true);
                   setRows((prev) =>
                     prev.map((item) =>
                       item.student.id === row.student.id ? { ...item, ...patch } : item,

@@ -9,7 +9,7 @@ import type {
   Student,
   UserProfile,
 } from '../types';
-import { setLocalBirthdayOverride } from '../utils/birthdays';
+import { getAllLocalBirthdayOverrides, setLocalBirthdayOverride } from '../utils/birthdays';
 import { deduplicateStudents } from '../utils/helpers';
 
 export const SUPABASE_URL = 'https://segqpdkygxdzzpkkgiem.supabase.co';
@@ -269,6 +269,121 @@ export async function updatePersonBirthDate(
   }
 
   return { ok: true, savedToDb: false, needsColumnMigration: false, error: msg };
+}
+
+export async function checkBirthDateColumnExists(): Promise<{
+  studentsHasCol: boolean;
+  servantsHasCol: boolean;
+}> {
+  const [stdRes, srvRes] = await Promise.all([
+    supabaseClient.from('students').select('birth_date').limit(1),
+    supabaseClient.from('servants').select('birth_date').limit(1),
+  ]);
+  return {
+    studentsHasCol: !stdRes.error,
+    servantsHasCol: !srvRes.error,
+  };
+}
+
+export async function syncLocalBirthdaysToSupabase(
+  students: Student[],
+  servants: Servant[],
+): Promise<{
+  syncedCount: number;
+  pendingLocalCount: number;
+  needsColumnMigration: boolean;
+}> {
+  const overrides = getAllLocalBirthdayOverrides();
+  if (overrides.length === 0) {
+    const { studentsHasCol, servantsHasCol } = await checkBirthDateColumnExists();
+    return {
+      syncedCount: 0,
+      pendingLocalCount: 0,
+      needsColumnMigration: !studentsHasCol || !servantsHasCol,
+    };
+  }
+
+  const studentMap = new Map(students.map((s) => [s.id, s]));
+  const servantMap = new Map(servants.map((sv) => [sv.id, sv]));
+  const { studentsHasCol, servantsHasCol } = await checkBirthDateColumnExists();
+
+  if (!studentsHasCol || !servantsHasCol) {
+    const pending = overrides.filter((o) => {
+      const rec = o.role === 'student' ? studentMap.get(o.id) : servantMap.get(o.id);
+      return rec && !rec.birth_date;
+    }).length;
+    return {
+      syncedCount: 0,
+      pendingLocalCount: pending,
+      needsColumnMigration: true,
+    };
+  }
+
+  let syncedCount = 0;
+  for (const item of overrides) {
+    const rec = item.role === 'student' ? studentMap.get(item.id) : servantMap.get(item.id);
+    if (!rec) continue;
+    if (rec.birth_date && rec.birth_date.slice(0, 10) === item.birthDate) continue;
+
+    const table = item.role === 'student' ? 'students' : 'servants';
+    const { error } = await supabaseClient
+      .from(table)
+      .update({ birth_date: item.birthDate })
+      .eq('id', item.id);
+    if (!error) {
+      syncedCount++;
+    }
+  }
+
+  return {
+    syncedCount,
+    pendingLocalCount: 0,
+    needsColumnMigration: false,
+  };
+}
+
+export function subscribeToRealtimeChanges(onTablesChanged: (tables: string[]) => void): () => void {
+  let debounceTimer: number | null = null;
+  const changedSet = new Set<string>();
+
+  const scheduleFlush = (table: string) => {
+    changedSet.add(table);
+    if (debounceTimer !== null) {
+      window.clearTimeout(debounceTimer);
+    }
+    debounceTimer = window.setTimeout(() => {
+      const list = Array.from(changedSet);
+      changedSet.clear();
+      debounceTimer = null;
+      onTablesChanged(list);
+    }, 350);
+  };
+
+  const channel = supabaseClient
+    .channel('sunday-school-all-devices-sync')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'classes' }, () =>
+      scheduleFlush('classes'),
+    )
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'students' }, () =>
+      scheduleFlush('students'),
+    )
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'servants' }, () =>
+      scheduleFlush('servants'),
+    )
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance' }, () =>
+      scheduleFlush('attendance'),
+    )
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'servant_attendance' }, () =>
+      scheduleFlush('servant_attendance'),
+    )
+    .subscribe();
+
+  return () => {
+    if (debounceTimer !== null) {
+      window.clearTimeout(debounceTimer);
+    }
+    supabaseClient.removeChannel(channel);
+  };
 }
 
 export async function fetchServantsForClass(classId: string): Promise<Servant[]> {
