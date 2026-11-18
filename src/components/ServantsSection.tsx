@@ -23,7 +23,7 @@ type ServantSubView = 'selector' | 'daily' | 'report' | 'detailed' | 'allReport'
 interface ServantsSectionProps {
   initialView: 'selector' | 'allReport';
   classes: ClassInfo[];
-  userId: string;
+  userId: string | null;
   onBack: () => void;
   onToast: (type: 'success' | 'error' | 'info' | 'birthday', text: string) => void;
 }
@@ -142,7 +142,7 @@ export const ServantsSection: React.FC<ServantsSectionProps> = ({
         attended_fasl: row.attended_fasl,
         attended_preparation: row.attended_preparation,
         notes: row.notes,
-        recorded_by: userId,
+        ...(userId ? { recorded_by: userId } : {}),
       };
       const { error } = await supabaseClient
         .from('servant_attendance')

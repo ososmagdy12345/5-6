@@ -24,7 +24,7 @@ export type StudentViewMode = 'daily' | 'report' | 'detailed' | 'allClasses';
 
 interface StudentsSectionProps {
   isAdmin: boolean;
-  userId: string;
+  userId: string | null;
   classId: string | null;
   className: string;
   classes: ClassInfo[];
@@ -206,7 +206,7 @@ export const StudentsSection: React.FC<StudentsSectionProps> = ({
           class_grade: row.classGrade,
           behavior_grade: row.behavior,
           notes: row.notes,
-          recorded_by: userId,
+          ...(userId ? { recorded_by: userId } : {}),
         });
       } else {
         await supabaseClient

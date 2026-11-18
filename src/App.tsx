@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { User } from 'firebase/auth';
-import { Bell, Cake, FileSpreadsheet, LogOut, Mail, X } from 'lucide-react';
+import { Bell, Cake, FileSpreadsheet, Mail, X } from 'lucide-react';
 import { AddStudentModal } from './components/AddStudentModal';
 import { BirthdaysView } from './components/BirthdaysView';
 import { ConfirmDialog } from './components/ConfirmDialog';
@@ -17,12 +17,8 @@ import {
   fetchAllClasses,
   fetchAllServants,
   fetchAllStudents,
-  fetchServantsForClass,
-  fetchStudentsForClass,
-  getCurrentUserProfile,
-  supabaseClient,
 } from './lib/supabase';
-import type { ClassInfo, Servant, Student, ToastMessage, UserProfile } from './types';
+import type { ClassInfo, Servant, Student, ToastMessage } from './types';
 import {
   ARABIC_MONTHS,
   buildBirthdayPeople,
@@ -41,14 +37,7 @@ type AppScreen =
   | 'birthdays';
 
 export default function App() {
-  const [authLoading, setAuthLoading] = useState(true);
-  const [user, setUser] = useState<UserProfile | null>(null);
-
-  // Login form state
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loginError, setLoginError] = useState('');
-  const [loggingIn, setLoggingIn] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   // Shared domain data
   const [classes, setClasses] = useState<ClassInfo[]>([]);
@@ -84,46 +73,28 @@ export default function App() {
     [],
   );
 
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = true;
 
-  const loadPeopleForUser = useCallback(async (profile: UserProfile) => {
-    if (profile.role === 'admin') {
-      const [cls, stds, srvs] = await Promise.all([
-        fetchAllClasses(),
-        fetchAllStudents(),
-        fetchAllServants(),
-      ]);
-      setClasses(cls);
-      setAllStudents(stds);
-      setAllServants(srvs);
-    } else if (profile.class_id) {
-      const [stds, srvs] = await Promise.all([
-        fetchStudentsForClass(profile.class_id),
-        fetchServantsForClass(profile.class_id),
-      ]);
-      setClasses(
-        profile.classes ? [profile.classes] : [{ id: profile.class_id, class_name: 'الفصل' }],
-      );
-      setAllStudents(stds);
-      setAllServants(srvs);
-    }
+  const loadAllData = useCallback(async () => {
+    const [cls, stds, srvs] = await Promise.all([
+      fetchAllClasses(),
+      fetchAllStudents(),
+      fetchAllServants(),
+    ]);
+    setClasses(cls);
+    setAllStudents(stds);
+    setAllServants(srvs);
   }, []);
 
-  const initializeSession = useCallback(async () => {
-    setAuthLoading(true);
-    const profile = await getCurrentUserProfile();
-    if (profile) {
-      setUser(profile);
-      await loadPeopleForUser(profile);
-    } else {
-      setUser(null);
-    }
-    setAuthLoading(false);
-  }, [loadPeopleForUser]);
+  const initializeApp = useCallback(async () => {
+    setInitialLoading(true);
+    await loadAllData();
+    setInitialLoading(false);
+  }, [loadAllData]);
 
   useEffect(() => {
-    initializeSession();
-  }, [initializeSession]);
+    initializeApp();
+  }, [initializeApp]);
 
   useEffect(() => {
     return initGoogleAuth(
@@ -158,7 +129,7 @@ export default function App() {
 
   // Automatic birthday notification dispatch on load + hourly check
   useEffect(() => {
-    if (!user || todaysBirthdays.length === 0) return;
+    if (initialLoading || todaysBirthdays.length === 0) return;
 
     const triggerCheck = () => {
       const { sentCount } = dispatchTodayBirthdayNotifications(todaysBirthdays);
@@ -173,29 +144,7 @@ export default function App() {
     triggerCheck();
     const timer = window.setInterval(triggerCheck, 60 * 60 * 1000);
     return () => window.clearInterval(timer);
-  }, [user, todaysBirthdays, pushToast]);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoggingIn(true);
-    setLoginError('');
-    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-    setLoggingIn(false);
-    if (error) {
-      setLoginError(error.message);
-      return;
-    }
-    await initializeSession();
-  };
-
-  const handleLogout = async () => {
-    await supabaseClient.auth.signOut();
-    setUser(null);
-    setScreen('main');
-    setSelectedAdminClassId('');
-    setAllStudents([]);
-    setAllServants([]);
-  };
+  }, [initialLoading, todaysBirthdays, pushToast]);
 
   const handleEnableNotificationsFromBell = async () => {
     const perm = await requestBrowserNotificationPermission();
@@ -252,21 +201,17 @@ export default function App() {
     }
   };
 
-  const activeClassId = isAdmin ? selectedAdminClassId : user?.class_id || null;
+  const activeClassId = selectedAdminClassId || null;
   const activeClassStudents = useMemo(
     () => (activeClassId ? allStudents.filter((s) => s.class_id === activeClassId) : []),
     [allStudents, activeClassId],
   );
   const activeClassName = useMemo(() => {
     if (!activeClassId) return 'الفصل';
-    return (
-      classes.find((c) => c.id === activeClassId)?.class_name ||
-      user?.classes?.class_name ||
-      'الفصل'
-    );
-  }, [activeClassId, classes, user?.classes?.class_name]);
+    return classes.find((c) => c.id === activeClassId)?.class_name || 'الفصل';
+  }, [activeClassId, classes]);
 
-  if (authLoading) {
+  if (initialLoading) {
     return (
       <div className="app-bg flex min-h-screen items-center justify-center p-4">
         <div className="relative z-10 rounded-3xl bg-white/95 px-8 py-6 text-center shadow-xl">
@@ -282,64 +227,8 @@ export default function App() {
     );
   }
 
-  // Login Screen
-  if (!user) {
-    return (
-      <div className="app-bg flex min-h-screen items-center justify-center p-4">
-        <div className="relative z-10 w-full max-w-md rounded-3xl bg-white/95 p-8 shadow-2xl">
-          <div className="mb-6 flex flex-col items-center gap-3 text-center">
-            <img
-              src={LOGO_URL}
-              alt="شعار خدمة خامسة وسادسة"
-              referrerPolicy="no-referrer"
-              className="h-20 w-auto rounded-xl shadow"
-            />
-            <h1 className="text-2xl font-extrabold text-blue-900">خدمة خامسة وسادسة</h1>
-            <p className="text-sm text-gray-500">نظام الحضور والتقارير وأعياد الميلاد</p>
-          </div>
-
-          <form onSubmit={handleLogin} className="space-y-4">
-            <h2 className="text-center text-xl font-bold text-blue-900">تسجيل الدخول</h2>
-
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="البريد الإلكتروني"
-              className="w-full rounded-2xl border border-gray-300 px-4 py-3.5 text-base focus:border-blue-600 focus:outline-none"
-            />
-
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="كلمة السر"
-              className="w-full rounded-2xl border border-gray-300 px-4 py-3.5 text-base focus:border-blue-600 focus:outline-none"
-            />
-
-            <button
-              type="submit"
-              disabled={loggingIn}
-              className="w-full rounded-full bg-blue-900 py-3.5 text-lg font-bold text-white shadow-md transition hover:bg-blue-700 disabled:opacity-60"
-            >
-              {loggingIn ? 'جاري الدخول...' : 'دخول'}
-            </button>
-
-            {loginError && (
-              <div className="rounded-2xl bg-red-100 p-3 text-center text-sm font-semibold text-red-800">
-                {loginError}
-              </div>
-            )}
-          </form>
-        </div>
-      </div>
-    );
-  }
-
   const refreshAllPeople = async () => {
-    if (user) await loadPeopleForUser(user);
+    await loadAllData();
   };
 
   const studentSectionInitialMode: StudentViewMode =
@@ -549,15 +438,6 @@ export default function App() {
                 <FileSpreadsheet className="h-4 w-4" />
                 استيراد Excel
               </button>
-
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="inline-flex items-center gap-1.5 rounded-full bg-blue-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
-              >
-                <LogOut className="h-4 w-4" />
-                تسجيل خروج
-              </button>
             </div>
           </div>
         )}
@@ -569,7 +449,7 @@ export default function App() {
             classes={classes}
             students={allStudents}
             servants={allServants}
-            userClassId={user.class_id}
+            userClassId={activeClassId}
             needsSqlMigrationHint={needsSqlHint}
             gmailUser={gmailUser}
             gmailToken={gmailToken}
@@ -591,7 +471,7 @@ export default function App() {
           <ServantsSection
             initialView={screen === 'servantSelector' ? 'selector' : 'allReport'}
             classes={classes}
-            userId={user.id}
+            userId={null}
             onBack={() => setScreen('main')}
             onToast={pushToast}
           />
@@ -600,7 +480,7 @@ export default function App() {
         {screen === 'allClassesReport' && (
           <StudentsSection
             isAdmin={isAdmin}
-            userId={user.id}
+            userId={null}
             classId={null}
             className="جميع الفصول"
             classes={classes}
@@ -638,7 +518,7 @@ export default function App() {
             {activeClassId ? (
               <StudentsSection
                 isAdmin={isAdmin}
-                userId={user.id}
+                userId={null}
                 classId={activeClassId}
                 className={activeClassName}
                 classes={classes}
@@ -684,7 +564,7 @@ export default function App() {
         classes={classes}
         students={allStudents}
         servants={allServants}
-        defaultClassId={activeClassId || user.class_id}
+        defaultClassId={activeClassId}
         onClose={() => setShowExcelImport(false)}
         onImported={async (needsMig) => {
           if (needsMig) setNeedsSqlHint(true);
