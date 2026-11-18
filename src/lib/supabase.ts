@@ -12,9 +12,12 @@ import type {
 import { setLocalBirthdayOverride } from '../utils/birthdays';
 import { deduplicateStudents } from '../utils/helpers';
 
-export const SUPABASE_URL = 'https://segqpdkygxdzzpkkgiem.supabase.co';
+export const SUPABASE_URL =
+  import.meta.env.VITE_SUPABASE_URL || 'https://ebwtcotvisxvqbywxhwe.supabase.co';
 export const SUPABASE_ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNlZ3FwZGt5Z3hkenpwa2tnaWVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5NDQzOTMsImV4cCI6MjA4NzUyMDM5M30.wPx74fmu93ii-tm6iIeyPucRsNnSA8SFUsHhJitp1bs';
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  'sb_publishable_pEo1XRgzixVbcogtn-lLrw_HUKWJPX0';
 
 export const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
